@@ -43,7 +43,7 @@ function materialsSummary(p: Project): string {
     .join('; ')
 }
 
-export async function exportWorkbook(projects: Project[], catalogs: Catalogs) {
+export async function buildWorkbookBuffer(projects: Project[], catalogs: Catalogs): Promise<ArrayBuffer> {
   const ExcelJS = await loadExcel()
   const wb = new ExcelJS.Workbook()
   wb.creator = 'Akufon / Ecophon CRM'
@@ -136,8 +136,13 @@ export async function exportWorkbook(projects: Project[], catalogs: Catalogs) {
   sheet.getColumn(24).width = 36
 
   const buffer = await wb.xlsx.writeBuffer()
+  return buffer as ArrayBuffer
+}
+
+export async function exportWorkbook(projects: Project[], catalogs: Catalogs) {
+  const buffer = await buildWorkbookBuffer(projects, catalogs)
   const stamp = new Date().toISOString().slice(0, 10)
-  downloadBuffer(buffer as ArrayBuffer, `Бланки_информирования_Ecophon_${stamp}.xlsx`)
+  downloadBuffer(buffer, `Бланки_информирования_Ecophon_${stamp}.xlsx`)
 }
 
 function cellText(value: ExcelJS.CellValue): string {

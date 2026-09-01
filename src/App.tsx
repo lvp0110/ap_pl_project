@@ -1,11 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
 import { CatalogsPage } from './components/CatalogsPage'
+import { ConflictDialog } from './components/ConflictDialog'
 import { Dashboard } from './components/Dashboard'
 import { BlankForm } from './components/BlankForm'
+import { FolderPanel } from './components/FolderPanel'
 import { ProjectsPage } from './components/ProjectsPage'
 import { emptyProject } from './data/defaults'
 import { exportWorkbook, importWorkbook } from './lib/excel'
+import { downloadJsonBundle, importJsonFiles } from './lib/repo/download'
+import { loadOperator, saveOperator } from './lib/repo/operator'
+import {
+  canUseFolderPicker,
+  connectSharedFolder,
+  deleteProjectFromFolder,
+  disconnectSharedFolder,
+  getFolderSession,
+  isFolderConnected,
+  loadSharedFolder,
+  restoreFolderSession,
+  resumeSharedFolder,
+  saveCatalogsToFolder,
+  saveProjectToFolder,
+  StoreConflictError,
+  writeAllToFolder,
+  writeExcelSnapshot,
+} from './lib/repo/session'
 import { loadState, nextId, saveCatalogs, saveProjects } from './lib/storage'
+import type { BlankEnvelope } from './lib/repo/types'
 import type { AppView, Catalogs, Project, ProjectPreset } from './types'
 
 type Draft = { project: Project; isNew: boolean; key: string }
@@ -19,10 +40,55 @@ export default function App() {
   const [preset, setPreset] = useState<ProjectPreset>('all')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [operator, setOperator] = useState(loadOperator)
+  const [folder, setFolder] = useState(getFolderSession)
+  const [folderReady, setFolderReady] = useState(false)
+  const [conflict, setConflict] = useState<{ pending: Project; remote: BlankEnvelope } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => saveProjects(projects), [projects])
   useEffect(() => saveCatalogs(catalogs), [catalogs])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const session = await restoreFolderSession()
+        setFolder(session)
+        if (session.connected) {
+          const loaded = await loadSharedFolder()
+          setProjects(loaded.projects)
+          if (loaded.catalogs) setCatalogs(loaded.catalogs)
+          setNotice(
+            loaded.projects.length
+              ? `Загружено из папки «${session.name}»: ${loaded.projects.length}`
+              : `Папка «${session.name}» подключена`,
+          )
+        }
+      } catch (err) {
+        setNotice(err instanceof Error ? err.message : 'Не удалось открыть папку')
+      } finally {
+        setFolderReady(true)
+        setFolder(getFolderSession())
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    if (!folderReady || !folder.connected) return
+    const timer = window.setTimeout(() => {
+      void saveCatalogsToFolder(catalogs).catch((err) => {
+        setNotice(err instanceof Error ? err.message : 'Не удалось записать справочники в папку')
+      })
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [catalogs, folder.connected, folderReady])
+
+  function applyProject(project: Project, key: string, isNew: boolean) {
+    setProjects((prev) => {
+      if (isNew && !prev.some((p) => p.id === project.id)) return [...prev, project]
+      return prev.map((p) => (p.id === key ? project : p))
+    })
+  }
 
   function openNew() {
     const id = nextId(projects)
@@ -38,25 +104,70 @@ export default function App() {
     setDraft({ isNew: false, key: project.id, project: { ...project } })
   }
 
-  function saveDraft() {
-    if (!draft) return
-    const project = {
-      ...draft.project,
-      name: draft.project.name.trim(),
-      id: draft.project.id.trim() || nextId(projects),
+  async function commitProject(project: Project, key: string, isNew: boolean, overwrite = false) {
+    const prepared: Project = {
+      ...project,
+      name: project.name.trim(),
+      id: project.id.trim() || nextId(projects),
     }
 
-    setProjects((prev) => {
-      if (draft.isNew) return [...prev, project]
-      return prev.map((p) => (p.id === draft.key ? project : p))
-    })
-    setDraft(null)
+    if (isFolderConnected()) {
+      const saved = await saveProjectToFolder(prepared, {
+        overwrite,
+        expectedUpdatedAt: project.updatedAt,
+      })
+      applyProject(saved, key, isNew)
+      return saved
+    }
+
+    const local: Project = {
+      ...prepared,
+      updatedAt: new Date().toISOString(),
+      updatedBy: operator,
+    }
+    applyProject(local, key, isNew)
+    return local
   }
 
-  function deleteDraft() {
+  async function saveDraft(overwrite = false) {
+    if (!draft) return
+    setNotice('')
+    try {
+      await commitProject(draft.project, draft.key, draft.isNew, overwrite)
+      setConflict(null)
+      setDraft(null)
+      if (isFolderConnected()) setNotice('Бланк записан в общую папку')
+    } catch (err) {
+      if (err instanceof StoreConflictError) {
+        setConflict({ pending: draft.project, remote: err.existing })
+        return
+      }
+      applyProject(
+        {
+          ...draft.project,
+          name: draft.project.name.trim(),
+          updatedAt: new Date().toISOString(),
+          updatedBy: operator,
+        },
+        draft.key,
+        draft.isNew,
+      )
+      setDraft(null)
+      setNotice(err instanceof Error ? `${err.message}. Сохранено в браузере.` : 'Сохранено только в браузере')
+    }
+  }
+
+  async function deleteDraft() {
     if (!draft || draft.isNew) return
     setProjects((prev) => prev.filter((p) => p.id !== draft.key))
     setDraft(null)
+    if (isFolderConnected()) {
+      try {
+        await deleteProjectFromFolder(draft.key)
+      } catch (err) {
+        setNotice(err instanceof Error ? err.message : 'Не удалось удалить файл в папке')
+      }
+    }
   }
 
   async function handleExport() {
@@ -86,6 +197,118 @@ export default function App() {
       setNotice(`Загружено проектов: ${imported.length}`)
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Не удалось прочитать Excel')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handlePickFolder() {
+    setBusy(true)
+    setNotice('')
+    try {
+      const result = await connectSharedFolder({ projects, catalogs })
+      setFolder(getFolderSession())
+      setProjects(result.projects)
+      if (result.catalogs) setCatalogs(result.catalogs)
+      setNotice(
+        result.seeded
+          ? `Папка «${result.name}» была пустой — записали текущие бланки`
+          : `Загружено из папки «${result.name}»: ${result.projects.length}`,
+      )
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return
+      setNotice(err instanceof Error ? err.message : 'Не удалось подключить папку')
+    } finally {
+      setBusy(false)
+      setFolder(getFolderSession())
+    }
+  }
+
+  async function handleResumeFolder() {
+    setBusy(true)
+    setNotice('')
+    try {
+      const loaded = await resumeSharedFolder()
+      setFolder(getFolderSession())
+      setProjects(loaded.projects)
+      if (loaded.catalogs) setCatalogs(loaded.catalogs)
+      setNotice(`Папка «${getFolderSession().name}» открыта, бланков: ${loaded.projects.length}`)
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось открыть папку')
+    } finally {
+      setBusy(false)
+      setFolder(getFolderSession())
+    }
+  }
+
+  async function handleReloadFolder() {
+    setBusy(true)
+    setNotice('')
+    try {
+      const loaded = await loadSharedFolder()
+      setProjects(loaded.projects)
+      if (loaded.catalogs) setCatalogs(loaded.catalogs)
+      setNotice(`Прочитано из папки: ${loaded.projects.length}`)
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать папку')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleWriteAll() {
+    setBusy(true)
+    setNotice('')
+    try {
+      await writeAllToFolder(projects, catalogs)
+      setNotice('Все бланки, справочники и registry.xlsx записаны в папку')
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось записать папку')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleWriteExcel() {
+    setBusy(true)
+    setNotice('')
+    try {
+      await writeExcelSnapshot(projects, catalogs)
+      setNotice('registry.xlsx обновлён в папке')
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось записать Excel')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDisconnect() {
+    await disconnectSharedFolder()
+    setFolder(getFolderSession())
+    setNotice('Папка отключена. Копия остаётся в этом браузере.')
+  }
+
+  async function handleImportJson(files: FileList) {
+    setBusy(true)
+    setNotice('')
+    try {
+      const imported = await importJsonFiles(files)
+      if (!imported.projects.length && !imported.catalogs) {
+        setNotice('В JSON нет бланков')
+        return
+      }
+      if (imported.projects.length) {
+        setProjects((prev) => {
+          const map = new Map(prev.map((p) => [p.id, p]))
+          for (const project of imported.projects) map.set(project.id, project)
+          return [...map.values()]
+        })
+      }
+      if (imported.catalogs) setCatalogs(imported.catalogs)
+      setView('projects')
+      setNotice(`Загружено из JSON: ${imported.projects.length}`)
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать JSON')
     } finally {
       setBusy(false)
     }
@@ -125,11 +348,36 @@ export default function App() {
             Справочники
           </button>
         </nav>
+        <FolderPanel
+          supported={canUseFolderPicker()}
+          connected={folder.connected}
+          needsGesture={folder.needsGesture}
+          folderName={folder.name}
+          operator={operator}
+          busy={busy}
+          onOperatorChange={(name) => {
+            setOperator(name)
+            saveOperator(name)
+          }}
+          onPickFolder={() => void handlePickFolder()}
+          onResume={() => void handleResumeFolder()}
+          onReload={() => void handleReloadFolder()}
+          onWriteAll={() => void handleWriteAll()}
+          onWriteExcel={() => void handleWriteExcel()}
+          onDisconnect={() => void handleDisconnect()}
+          onDownloadJson={() => downloadJsonBundle(projects, catalogs)}
+          onImportJson={(files) => void handleImportJson(files)}
+        />
       </aside>
 
       <div className="main">
         <header className="topbar">
-          <p>{notice || 'Бланк менеджера = «Бланк информирования Ecophon». Жёлтые поля обязательны.'}</p>
+          <p>
+            {notice ||
+              (folder.connected
+                ? `Общая папка: ${folder.name}. Жёлтые поля обязательны.`
+                : 'Бланк менеджера = «Бланк информирования Ecophon». Жёлтые поля обязательны.')}
+          </p>
           <div className="topbar-actions">
             <input
               ref={fileRef}
@@ -186,9 +434,33 @@ export default function App() {
           catalogs={catalogs}
           isNew={draft.isNew}
           onChange={(project) => setDraft({ ...draft, project })}
-          onSave={saveDraft}
+          onSave={() => void saveDraft(false)}
           onClose={() => setDraft(null)}
-          onDelete={draft.isNew ? undefined : deleteDraft}
+          onDelete={draft.isNew ? undefined : () => void deleteDraft()}
+        />
+      )}
+
+      {conflict && (
+        <ConflictDialog
+          remote={conflict.remote}
+          localName={conflict.pending.name}
+          onUseRemote={(project) => {
+            setProjects((prev) => {
+              if (prev.some((p) => p.id === project.id)) {
+                return prev.map((p) => (p.id === project.id ? project : p))
+              }
+              return [...prev, project]
+            })
+            setDraft((current) =>
+              current && (current.key === project.id || current.project.id === project.id)
+                ? { ...current, isNew: false, key: project.id, project }
+                : current,
+            )
+            setConflict(null)
+            setNotice('Открыта версия из папки')
+          }}
+          onOverwrite={() => void saveDraft(true)}
+          onCancel={() => setConflict(null)}
         />
       )}
     </div>

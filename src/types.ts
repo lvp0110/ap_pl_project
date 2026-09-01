@@ -46,6 +46,8 @@ export type Project = {
   installScheme: string
   specification: string
   materials: MaterialLine[]
+  updatedAt: string
+  updatedBy: string
 }
 
 export type Catalogs = {

@@ -742,6 +742,87 @@ legend {
   box-sizing: border-box;
 }
 
+.folder-panel {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #3a332e;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #c4b8aa;
+}
+
+.folder-panel h3 {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #efe7dc;
+}
+
+.folder-panel p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.folder-operator {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.folder-operator input {
+  border: 1px solid #4a433c;
+  background: #1a1614;
+  color: #efe7dc;
+  padding: 6px 8px;
+}
+
+.folder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.folder-panel .ghost,
+.folder-panel .primary {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.folder-panel .ghost {
+  color: #efe7dc;
+  border-color: #4a433c;
+}
+
+.folder-panel .ghost:hover {
+  background: var(--sidebar-2);
+}
+
+.conflict-sheet {
+  position: relative;
+  width: min(520px, 100%);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  margin-top: 18vh;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conflict-sheet h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.conflict-sheet p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
 @media (max-width: 960px) {
   .app {
     grid-template-columns: 1fr;
@@ -749,6 +830,7 @@ legend {
 
   .sidebar {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
@@ -756,6 +838,21 @@ legend {
 
   .sidebar nav {
     flex-direction: row;
+  }
+
+  .folder-panel {
+    flex: 1 0 100%;
+    margin-top: 8px;
+  }
+
+  .folder-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .folder-panel .ghost,
+  .folder-panel .primary {
+    width: auto;
   }
 
   .kpi-grid,

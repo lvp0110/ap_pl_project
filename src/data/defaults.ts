@@ -129,6 +129,8 @@ export function emptyProject(id = ''): Project {
     installScheme: '',
     specification: '',
     materials: Array.from({ length: MATERIAL_ROWS }, () => emptyMaterial()),
+    updatedAt: '',
+    updatedBy: '',
   }
 }
 

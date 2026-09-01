@@ -8,7 +8,7 @@ type Stored = {
   catalogs: Catalogs
 }
 
-function normalize(raw: Partial<Project>, fallbackId: string): Project {
+export function normalizeProject(raw: Partial<Project>, fallbackId: string): Project {
   const base = emptyProject(raw.id || fallbackId)
   const materials = Array.from({ length: MATERIAL_ROWS }, (_, i) => ({
     ...emptyMaterial(),
@@ -26,6 +26,8 @@ function normalize(raw: Partial<Project>, fallbackId: string): Project {
     },
     materials,
     probability: raw.probability ?? '',
+    updatedAt: raw.updatedAt ?? '',
+    updatedBy: raw.updatedBy ?? '',
   }
 }
 
@@ -35,7 +37,7 @@ function read(): Stored {
     if (!raw) return { projects: [], catalogs: structuredClone(DEFAULT_CATALOGS) }
     const parsed = JSON.parse(raw) as Partial<Stored>
     const projects = Array.isArray(parsed.projects)
-      ? parsed.projects.map((p, i) => normalize(p, String(i + 1)))
+      ? parsed.projects.map((p, i) => normalizeProject(p, String(i + 1)))
       : []
     return {
       projects,
