@@ -11,7 +11,15 @@ npm install
 npm run dev
 ```
 
-Приложение откроется на `http://localhost:5173`.
+Приложение откроется на `http://localhost:5173/ap_pl_project/`.
+
+## Публикация на GitHub Pages
+
+Сайт: [https://lvp0110.github.io/ap_pl_project/](https://lvp0110.github.io/ap_pl_project/)
+
+Сборка из исходников GitHub не запускает Vite, поэтому в корне репозитория `index.html` ссылается на `/src/main.tsx` и даёт 404. Публикуется папка `dist` через GitHub Actions.
+
+Один раз в репозитории: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 
 ## Скрипты
 
