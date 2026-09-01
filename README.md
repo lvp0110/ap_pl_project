@@ -17,9 +17,18 @@ npm run dev
 
 Сайт: [https://lvp0110.github.io/ap_pl_project/](https://lvp0110.github.io/ap_pl_project/)
 
-Сборка из исходников GitHub не запускает Vite, поэтому в корне репозитория `index.html` ссылается на `/src/main.tsx` и даёт 404. Публикуется папка `dist` через GitHub Actions.
+Сейчас GitHub отдаёт **корневой** `index.html` из исходников. В нём стоит `/src/main.tsx` — этого файла на Pages нет, поэтому пустой экран и 404.
 
-Один раз в репозитории: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Нужно публиковать папку **`docs`** (готовая сборка), а не корень репозитория.
+
+В репозитории: **Settings → Pages → Build and deployment**
+
+1. **Source:** Deploy from a branch (не GitHub Actions)
+2. **Branch:** `main`
+3. **Folder:** `/docs`
+4. Save
+
+Откройте именно `https://lvp0110.github.io/ap_pl_project/` (со слэшем в конце), лучше в режиме инкогнито.
 
 ## Скрипты
 
