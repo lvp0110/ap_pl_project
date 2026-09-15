@@ -72,7 +72,7 @@ export const CRM_REFERENCE_TYPES: CrmReferenceType[] = [
   'region',
 ]
 
-export const API_LOCKED_CATALOG_KEYS = [
+export const API_CATALOG_KEYS = [
   'sources',
   'purposes',
   'stages',
@@ -80,4 +80,15 @@ export const API_LOCKED_CATALOG_KEYS = [
   'regions',
   'documentationTypes',
   'managersSG',
+  'managersAG',
+  'units',
 ] as const
+
+export const CATALOG_REFERENCE_TYPES: Partial<Record<(typeof API_CATALOG_KEYS)[number], CrmReferenceType>> = {
+  sources: 'information_source',
+  purposes: 'segment',
+  stages: 'project_stage',
+  priorities: 'priority',
+  regions: 'region',
+  documentationTypes: 'documentation_type',
+}

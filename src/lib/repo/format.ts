@@ -1,24 +1,12 @@
-import { DEFAULT_CATALOGS } from '../../data/defaults'
 import { normalizeProject } from '../storage'
 import type { Catalogs, Project } from '../../types'
 import {
   BLANK_SCHEMA,
   BUNDLE_SCHEMA,
-  CATALOGS_SCHEMA,
   FORMAT_VERSION,
   type BlankEnvelope,
   type BundleEnvelope,
-  type CatalogsEnvelope,
 } from './types'
-
-export function blankFilename(id: string): string {
-  const safe = id.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 80) || 'new'
-  return `blank-${safe}.json`
-}
-
-export function isBlankFilename(name: string): boolean {
-  return /^blank-.+\.json$/i.test(name)
-}
 
 export function toBlankEnvelope(project: Project, updatedBy: string, updatedAt = new Date().toISOString()): BlankEnvelope {
   const stamped: Project = { ...project, updatedAt, updatedBy }
@@ -28,15 +16,6 @@ export function toBlankEnvelope(project: Project, updatedBy: string, updatedAt =
     updatedAt,
     updatedBy,
     project: stamped,
-  }
-}
-
-export function toCatalogsEnvelope(catalogs: Catalogs): CatalogsEnvelope {
-  return {
-    schema: CATALOGS_SCHEMA,
-    version: FORMAT_VERSION,
-    updatedAt: new Date().toISOString(),
-    catalogs,
   }
 }
 
@@ -90,39 +69,17 @@ export function parseBlankText(text: string, fallbackId: string): BlankEnvelope 
   return null
 }
 
-export function parseCatalogsText(text: string): Catalogs | null {
-  try {
-    const raw = JSON.parse(text) as unknown
-    if (!isRecord(raw)) return null
-    if (raw.schema === CATALOGS_SCHEMA && isRecord(raw.catalogs)) {
-      return { ...structuredClone(DEFAULT_CATALOGS), ...(raw.catalogs as Catalogs) }
-    }
-    if ('sources' in raw || 'purposes' in raw) {
-      return { ...structuredClone(DEFAULT_CATALOGS), ...(raw as Catalogs) }
-    }
-  } catch {
-    return null
-  }
-  return null
-}
-
-export function parseImportedJson(text: string): { projects: Project[]; catalogs?: Catalogs } {
+export function parseImportedJson(text: string): { projects: Project[] } {
   const raw = JSON.parse(text) as unknown
   if (!isRecord(raw)) return { projects: [] }
 
   if (raw.schema === BUNDLE_SCHEMA && Array.isArray(raw.projects)) {
-    const catalogs = isRecord(raw.catalogs)
-      ? { ...structuredClone(DEFAULT_CATALOGS), ...(raw.catalogs as Catalogs) }
-      : undefined
     const projects = (raw.projects as Partial<Project>[]).map((p, i) => normalizeProject(p, String(i + 1)))
-    return { projects, catalogs }
+    return { projects }
   }
 
   const blank = parseBlankText(text, '1')
   if (blank) return { projects: [blank.project] }
-
-  const catalogs = parseCatalogsText(text)
-  if (catalogs) return { projects: [], catalogs }
 
   return { projects: [] }
 }

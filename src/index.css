@@ -656,6 +656,22 @@ legend {
   flex: 1;
 }
 
+.catalog-add {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.catalog-add input {
+  flex: 1;
+  min-width: 0;
+}
+
+.catalog-add-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .check-banner {
   margin: 0 28px 8px;
   padding: 12px 14px;
@@ -710,6 +726,17 @@ legend {
   grid-template-columns: 1fr;
 }
 
+.price-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.price-actions .hint {
+  flex: 1 1 220px;
+}
+
 .blank-table-wrap {
   overflow: auto;
 }
@@ -755,7 +782,7 @@ legend {
   box-sizing: border-box;
 }
 
-.folder-panel {
+.sidebar-panel {
   padding-top: 16px;
   border-top: 1px solid #3a332e;
   display: flex;
@@ -765,11 +792,11 @@ legend {
   color: #c4b8aa;
 }
 
-.sidebar .folder-panel:last-of-type {
+.sidebar .sidebar-panel:last-of-type {
   margin-top: auto;
 }
 
-.folder-panel h3 {
+.sidebar-panel h3 {
   margin: 0;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -777,66 +804,44 @@ legend {
   color: #efe7dc;
 }
 
-.folder-panel p {
+.sidebar-panel p {
   margin: 0;
   line-height: 1.4;
 }
 
-.folder-operator {
+.sidebar-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.folder-operator input {
+.sidebar-field input {
   border: 1px solid #4a433c;
   background: #1a1614;
   color: #efe7dc;
   padding: 6px 8px;
 }
 
-.folder-actions {
+.sidebar-actions {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.folder-panel .ghost,
-.folder-panel .primary {
+.sidebar-panel .ghost,
+.sidebar-panel .primary {
   width: 100%;
   font-size: 12px;
   padding: 6px 10px;
 }
 
-.folder-panel .ghost {
+.sidebar-panel .ghost {
   color: #efe7dc;
   border-color: #4a433c;
 }
 
-.folder-panel .ghost:hover {
+.sidebar-panel .ghost:hover {
   background: var(--sidebar-2);
-}
-
-.conflict-sheet {
-  position: relative;
-  width: min(520px, 100%);
-  background: var(--paper-2);
-  border: 1px solid var(--line);
-  margin-top: 18vh;
-  padding: 24px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.conflict-sheet h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.conflict-sheet p {
-  margin: 0;
-  color: var(--ink-soft);
 }
 
 @media (max-width: 960px) {
@@ -856,18 +861,18 @@ legend {
     flex-direction: row;
   }
 
-  .folder-panel {
+  .sidebar-panel {
     flex: 1 0 100%;
     margin-top: 8px;
   }
 
-  .folder-actions {
+  .sidebar-actions {
     flex-direction: row;
     flex-wrap: wrap;
   }
 
-  .folder-panel .ghost,
-  .folder-panel .primary {
+  .sidebar-panel .ghost,
+  .sidebar-panel .primary {
     width: auto;
   }
 

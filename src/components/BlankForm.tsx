@@ -1,41 +1,52 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
-import type { CrmMaterial } from '../lib/api/types'
+import { priceNote } from '../lib/excel'
 import { collectBlankErrors } from '../lib/validate'
-import type { Catalogs, Contact, MaterialLine, Project } from '../types'
+import type { Catalogs, Contact, MaterialLine, PriceItem, Project } from '../types'
 
 type Props = {
   project: Project
   catalogs: Catalogs
-  materials: CrmMaterial[]
+  price: PriceItem[]
+  busy?: boolean
   isNew: boolean
   onChange: (next: Project) => void
   onSave: () => void
   onClose: () => void
   onDelete?: () => void
+  onImportPrice: (file: File) => void
+  onExportPrice: () => void
 }
 
-function matchMaterial(materials: CrmMaterial[], article: string, name: string): CrmMaterial | undefined {
+function matchPriceItem(price: PriceItem[], article: string, name: string): PriceItem | undefined {
   const art = article.trim().toLowerCase()
   const nm = name.trim().toLowerCase()
   if (art) {
-    const byArticle = materials.find((m) => (m.article || '').trim().toLowerCase() === art)
+    const byArticle = price.find((item) => item.article.trim().toLowerCase() === art)
     if (byArticle) return byArticle
   }
-  if (nm) return materials.find((m) => m.name.trim().toLowerCase() === nm)
+  if (nm) {
+    return price.find(
+      (item) => item.name.trim().toLowerCase() === nm || item.label.trim().toLowerCase() === nm,
+    )
+  }
   return undefined
 }
 
 export function BlankForm({
   project,
   catalogs,
-  materials,
+  price,
+  busy,
   isNew,
   onChange,
   onSave,
   onClose,
   onDelete,
+  onImportPrice,
+  onExportPrice,
 }: Props) {
+  const priceRef = useRef<HTMLInputElement>(null)
   const [showErrors, setShowErrors] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const check = useMemo(() => collectBlankErrors(project), [project])
@@ -64,14 +75,14 @@ export function BlankForm({
   function setMaterial(index: number, next: MaterialLine, fromCatalog = false) {
     let line = next
     if (fromCatalog) {
-      const hit = matchMaterial(materials, next.article, next.name)
+      const hit = matchPriceItem(price, next.article, next.name)
       if (hit) {
         line = {
           ...next,
           article: hit.article || next.article,
           name: hit.name || next.name,
-          unit: hit.unit || next.unit,
-          note: next.note || hit.comment || '',
+          unit: hit.qtyUnit || next.unit,
+          note: next.note || priceNote(hit),
         }
       }
     }
@@ -344,6 +355,35 @@ export function BlankForm({
             <legend>
               Краткая информация о предлагаемых материалах Ecophon — заполните минимум одну строку
             </legend>
+            <div className="price-actions">
+              <input
+                ref={priceRef}
+                type="file"
+                accept=".xlsx,.xls"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) onImportPrice(file)
+                }}
+              />
+              <button
+                type="button"
+                className="ghost"
+                disabled={busy}
+                onClick={() => priceRef.current?.click()}
+              >
+                Загрузить прайс в бланк
+              </button>
+              <button type="button" className="ghost" disabled={busy || !price.length} onClick={onExportPrice}>
+                Выгрузить прайс
+              </button>
+              <span className="hint">
+                {price.length
+                  ? `${price.length} позиций. Выберите артикул или название в таблице.`
+                  : 'Нужен Excel прайс-лист Ecophon (наименование, стоимость, единица).'}
+              </span>
+            </div>
             <div className="blank-table-wrap">
               <table className="blank-table">
                 <thead>
@@ -361,7 +401,7 @@ export function BlankForm({
                     <tr key={index}>
                       <td>
                         <input
-                          list="crm-material-articles"
+                          list="price-material-articles"
                           value={line.article}
                           onChange={(e) =>
                             setMaterial(index, { ...line, article: e.target.value }, true)
@@ -370,7 +410,7 @@ export function BlankForm({
                       </td>
                       <td className={invalid(`material-${index}-name`) ? 'cell-invalid' : undefined}>
                         <input
-                          list="crm-material-names"
+                          list="price-material-names"
                           value={line.name}
                           onChange={(e) =>
                             setMaterial(index, { ...line, name: e.target.value }, true)
@@ -415,22 +455,30 @@ export function BlankForm({
                 </tbody>
               </table>
             </div>
-            {materials.length > 0 && (
+            {price.length > 0 ? (
               <>
-                <datalist id="crm-material-articles">
-                  {materials
-                    .filter((m) => m.article)
-                    .map((m) => (
-                      <option key={`art-${m.id}`} value={m.article || ''} label={m.name} />
+                <datalist id="price-material-articles">
+                  {price
+                    .filter((item) => item.article)
+                    .map((item) => (
+                      <option
+                        key={`art-${item.id}`}
+                        value={item.article}
+                        label={`${item.name} · ${priceNote(item)}`}
+                      />
                     ))}
                 </datalist>
-                <datalist id="crm-material-names">
-                  {materials.map((m) => (
-                    <option key={`name-${m.id}`} value={m.name} label={m.article || m.name} />
+                <datalist id="price-material-names">
+                  {price.map((item) => (
+                    <option
+                      key={`name-${item.id}`}
+                      value={item.name}
+                      label={`${item.article || 'без артикула'} · ${priceNote(item)}`}
+                    />
                   ))}
                 </datalist>
               </>
-            )}
+            ) : null}
           </fieldset>
 
           <footer className="blank-foot">

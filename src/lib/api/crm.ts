@@ -1,3 +1,4 @@
+import { emptyCatalogs } from '../../data/defaults'
 import type { Catalogs } from '../../types'
 import { apiRequest } from './client'
 import {
@@ -66,6 +67,24 @@ export async function listSgManagers(): Promise<CrmSgManager[]> {
   return Array.isArray(data) ? data : []
 }
 
+export async function createReference(
+  type: CrmReferenceType,
+  name: string,
+  sortOrder: number,
+): Promise<void> {
+  await apiRequest(`/crm/references/${type}`, {
+    method: 'POST',
+    body: JSON.stringify({ name, sort_order: sortOrder, is_active: true }),
+  })
+}
+
+export async function createSgManager(name: string, email: string): Promise<void> {
+  await apiRequest('/crm/sg-managers', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, is_active: true, region_ids: [] }),
+  })
+}
+
 export async function loadCrmCatalogs(): Promise<{ catalogs: CrmCatalogSnapshot; materials: CrmMaterial[] }> {
   const [refs, materials, managers] = await Promise.all([
     Promise.all(CRM_REFERENCE_TYPES.map((type) => listReferences(type).then((rows) => [type, rows] as const))),
@@ -89,18 +108,16 @@ export async function loadCrmCatalogs(): Promise<{ catalogs: CrmCatalogSnapshot;
   }
 }
 
-export function mergeCrmCatalogs(current: Catalogs, snapshot: CrmCatalogSnapshot): Catalogs {
+export function catalogsFromCrm(snapshot: CrmCatalogSnapshot): Catalogs {
   return {
-    ...current,
-    sources: snapshot.sources.length ? snapshot.sources : current.sources,
-    purposes: snapshot.purposes.length ? snapshot.purposes : current.purposes,
-    stages: snapshot.stages.length ? snapshot.stages : current.stages,
-    priorities: snapshot.priorities.length ? snapshot.priorities : current.priorities,
-    regions: snapshot.regions.length ? snapshot.regions : current.regions,
-    documentationTypes: snapshot.documentationTypes.length
-      ? snapshot.documentationTypes
-      : current.documentationTypes,
-    managersSG: snapshot.managersSG.length ? snapshot.managersSG : current.managersSG,
-    units: snapshot.units.length ? [...new Set([...current.units, ...snapshot.units])] : current.units,
+    ...emptyCatalogs(),
+    sources: snapshot.sources,
+    purposes: snapshot.purposes,
+    stages: snapshot.stages,
+    priorities: snapshot.priorities,
+    regions: snapshot.regions,
+    documentationTypes: snapshot.documentationTypes,
+    managersSG: snapshot.managersSG,
+    units: snapshot.units,
   }
 }

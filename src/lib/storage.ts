@@ -1,11 +1,11 @@
-import { DEFAULT_CATALOGS, emptyProject, MATERIAL_ROWS, emptyMaterial } from '../data/defaults'
-import type { Catalogs, Project } from '../types'
+import { emptyProject, MATERIAL_ROWS, emptyMaterial } from '../data/defaults'
+import type { PriceItem, Project } from '../types'
 
 const KEY = 'akufon-ecophon-blank-v1'
+const PRICE_KEY = 'akufon-ecophon-price-v1'
 
 type Stored = {
   projects: Project[]
-  catalogs: Catalogs
 }
 
 export function normalizeProject(raw: Partial<Project>, fallbackId: string): Project {
@@ -34,17 +34,14 @@ export function normalizeProject(raw: Partial<Project>, fallbackId: string): Pro
 function read(): Stored {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return { projects: [], catalogs: structuredClone(DEFAULT_CATALOGS) }
+    if (!raw) return { projects: [] }
     const parsed = JSON.parse(raw) as Partial<Stored>
     const projects = Array.isArray(parsed.projects)
       ? parsed.projects.map((p, i) => normalizeProject(p, String(i + 1)))
       : []
-    return {
-      projects,
-      catalogs: { ...structuredClone(DEFAULT_CATALOGS), ...parsed.catalogs },
-    }
+    return { projects }
   } catch {
-    return { projects: [], catalogs: structuredClone(DEFAULT_CATALOGS) }
+    return { projects: [] }
   }
 }
 
@@ -57,11 +54,28 @@ export function loadState(): Stored {
 }
 
 export function saveProjects(projects: Project[]) {
-  write({ ...read(), projects })
+  write({ projects })
 }
 
-export function saveCatalogs(catalogs: Catalogs) {
-  write({ ...read(), catalogs })
+export function loadPriceList(): PriceItem[] {
+  try {
+    const raw = localStorage.getItem(PRICE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? parsed.filter(isPriceItem) : []
+  } catch {
+    return []
+  }
+}
+
+export function savePriceList(items: PriceItem[]) {
+  localStorage.setItem(PRICE_KEY, JSON.stringify(items))
+}
+
+function isPriceItem(value: unknown): value is PriceItem {
+  if (!value || typeof value !== 'object') return false
+  const row = value as Partial<PriceItem>
+  return typeof row.name === 'string' && typeof row.price === 'number'
 }
 
 export function nextId(projects: Project[]): string {

@@ -1,36 +1,26 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ApiPanel } from './components/ApiPanel'
 import { CatalogsPage } from './components/CatalogsPage'
-import { ConflictDialog } from './components/ConflictDialog'
 import { Dashboard } from './components/Dashboard'
 import { BlankForm } from './components/BlankForm'
-import { FolderPanel } from './components/FolderPanel'
+import { LocalPanel } from './components/LocalPanel'
 import { ProjectsPage } from './components/ProjectsPage'
-import { emptyProject } from './data/defaults'
-import { exportWorkbook, importWorkbook } from './lib/excel'
-import { downloadJsonBundle, importJsonFiles } from './lib/repo/download'
+import { emptyCatalogs, emptyProject } from './data/defaults'
+import { catalogsWithPriceUnits, exportPriceWorkbook, importPriceWorkbook } from './lib/excel'
 import { loadOperator, saveOperator } from './lib/repo/operator'
-import {
-  canUseFolderPicker,
-  connectSharedFolder,
-  deleteProjectFromFolder,
-  disconnectSharedFolder,
-  getFolderSession,
-  isFolderConnected,
-  loadSharedFolder,
-  restoreFolderSession,
-  resumeSharedFolder,
-  saveCatalogsToFolder,
-  saveProjectToFolder,
-  StoreConflictError,
-  writeAllToFolder,
-  writeExcelSnapshot,
-} from './lib/repo/session'
-import { loadState, nextId, saveCatalogs, saveProjects } from './lib/storage'
+import { loadPriceList, loadState, nextId, savePriceList, saveProjects } from './lib/storage'
 import { ApiError } from './lib/api/client'
-import { loadCrmCatalogs, loadSession, login, logout, mergeCrmCatalogs, userDisplayName } from './lib/api/crm'
-import { API_LOCKED_CATALOG_KEYS, type AuthUser, type CrmMaterial } from './lib/api/types'
-import type { BlankEnvelope } from './lib/repo/types'
+import {
+  catalogsFromCrm,
+  createReference,
+  createSgManager,
+  loadCrmCatalogs,
+  loadSession,
+  login,
+  logout,
+  userDisplayName,
+} from './lib/api/crm'
+import { CATALOG_REFERENCE_TYPES, type AuthUser } from './lib/api/types'
 import type { AppView, Catalogs, Project, ProjectPreset } from './types'
 
 type Draft = { project: Project; isNew: boolean; key: string }
@@ -39,65 +29,22 @@ export default function App() {
   const initial = loadState()
   const [view, setView] = useState<AppView>('dashboard')
   const [projects, setProjects] = useState<Project[]>(initial.projects)
-  const [catalogs, setCatalogs] = useState<Catalogs>(initial.catalogs)
+  const [catalogs, setCatalogs] = useState(emptyCatalogs)
+  const [price, setPrice] = useState(loadPriceList)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [preset, setPreset] = useState<ProjectPreset>('all')
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [operator, setOperator] = useState(loadOperator)
   const [apiUser, setApiUser] = useState<AuthUser | null>(null)
-  const [crmMaterials, setCrmMaterials] = useState<CrmMaterial[]>([])
-  const [apiLockedKeys, setApiLockedKeys] = useState<ReadonlySet<keyof Catalogs>>(new Set())
-  const [folder, setFolder] = useState(getFolderSession)
-  const [folderReady, setFolderReady] = useState(false)
-  const [conflict, setConflict] = useState<{ pending: Project; remote: BlankEnvelope } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const viewCatalogs = useMemo(() => catalogsWithPriceUnits(catalogs, price), [catalogs, price])
 
   useEffect(() => saveProjects(projects), [projects])
-  useEffect(() => saveCatalogs(catalogs), [catalogs])
-
-  useEffect(() => {
-    void (async () => {
-      try {
-        const session = await restoreFolderSession()
-        setFolder(session)
-        if (session.connected) {
-          const loaded = await loadSharedFolder()
-          setProjects(loaded.projects)
-          if (loaded.catalogs) setCatalogs(loaded.catalogs)
-          setNotice(
-            loaded.projects.length
-              ? `Загружено из папки «${session.name}»: ${loaded.projects.length}`
-              : `Папка «${session.name}» подключена`,
-          )
-        }
-      } catch (err) {
-        setNotice(err instanceof Error ? err.message : 'Не удалось открыть папку')
-      } finally {
-        setFolderReady(true)
-        setFolder(getFolderSession())
-      }
-    })()
-  }, [])
-
-  useEffect(() => {
-    if (!folderReady || !folder.connected) return
-    const timer = window.setTimeout(() => {
-      void saveCatalogsToFolder(catalogs).catch((err) => {
-        setNotice(err instanceof Error ? err.message : 'Не удалось записать справочники в папку')
-      })
-    }, 900)
-    return () => window.clearTimeout(timer)
-  }, [catalogs, folder.connected, folderReady])
+  useEffect(() => savePriceList(price), [price])
 
   async function pullCrm(user: AuthUser) {
     const loaded = await loadCrmCatalogs()
-    setCrmMaterials(loaded.materials)
-    setCatalogs((prev) => mergeCrmCatalogs(prev, loaded.catalogs))
-    const locked = new Set(
-      API_LOCKED_CATALOG_KEYS.filter((key) => loaded.catalogs[key].length > 0),
-    )
-    setApiLockedKeys(locked)
+    setCatalogs(catalogsFromCrm(loaded.catalogs))
     if (!loadOperator()) {
       const name = userDisplayName(user)
       if (name) {
@@ -106,12 +53,11 @@ export default function App() {
       }
     }
     setNotice(
-      `API: справочники обновлены, материалов ${loaded.materials.length}. Бланки проектов пока хранятся локально — в Swagger нет /crm/projects.`,
+      `API: справочники загружены. Прайс для таблицы материалов — из Excel. Бланки проектов пока в этом браузере.`,
     )
   }
 
   useEffect(() => {
-    if (!folderReady) return
     void (async () => {
       const user = await loadSession()
       if (!user) return
@@ -122,7 +68,7 @@ export default function App() {
         setNotice(err instanceof Error ? err.message : 'Сессия есть, но справочники CRM не загрузились')
       }
     })()
-  }, [folderReady])
+  }, [])
 
   async function handleApiLogin(email: string, password: string) {
     setBusy(true)
@@ -144,10 +90,9 @@ export default function App() {
       await logout()
     } finally {
       setApiUser(null)
-      setCrmMaterials([])
-      setApiLockedKeys(new Set())
+      setCatalogs(emptyCatalogs())
       setBusy(false)
-      setNotice('API отключён. Справочники остаются последней копией в браузере.')
+      setNotice('API отключён. Справочники CRM сброшены — они доступны только из API.')
     }
   }
 
@@ -159,6 +104,39 @@ export default function App() {
       await pullCrm(apiUser)
     } catch (err) {
       setNotice(err instanceof Error ? err.message : 'Не удалось обновить данные API')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleAddReference(key: keyof Catalogs, name: string) {
+    const type = CATALOG_REFERENCE_TYPES[key as keyof typeof CATALOG_REFERENCE_TYPES]
+    if (!apiUser || !type) return
+    setBusy(true)
+    setNotice('')
+    try {
+      await createReference(type, name, catalogs[key].length + 1)
+      await pullCrm(apiUser)
+      setNotice(`Значение «${name}» записано в API.`)
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось добавить значение')
+      throw err
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleAddSgManager(name: string, email: string) {
+    if (!apiUser) return
+    setBusy(true)
+    setNotice('')
+    try {
+      await createSgManager(name, email)
+      await pullCrm(apiUser)
+      setNotice(`Менеджер СГ «${name}» записан через API.`)
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось добавить менеджера СГ')
+      throw err
     } finally {
       setBusy(false)
     }
@@ -185,211 +163,56 @@ export default function App() {
     setDraft({ isNew: false, key: project.id, project: { ...project } })
   }
 
-  async function commitProject(project: Project, key: string, isNew: boolean, overwrite = false) {
+  function saveDraft() {
+    if (!draft) return
     const prepared: Project = {
-      ...project,
-      name: project.name.trim(),
-      id: project.id.trim() || nextId(projects),
-    }
-
-    if (isFolderConnected()) {
-      const saved = await saveProjectToFolder(prepared, {
-        overwrite,
-        expectedUpdatedAt: project.updatedAt,
-      })
-      applyProject(saved, key, isNew)
-      return saved
-    }
-
-    const local: Project = {
-      ...prepared,
+      ...draft.project,
+      name: draft.project.name.trim(),
+      id: draft.project.id.trim() || nextId(projects),
       updatedAt: new Date().toISOString(),
       updatedBy: operator,
     }
-    applyProject(local, key, isNew)
-    return local
-  }
-
-  async function saveDraft(overwrite = false) {
-    if (!draft) return
+    applyProject(prepared, draft.key, draft.isNew)
+    setDraft(null)
     setNotice('')
-    try {
-      await commitProject(draft.project, draft.key, draft.isNew, overwrite)
-      setConflict(null)
-      setDraft(null)
-      if (isFolderConnected()) setNotice('Бланк записан в общую папку')
-    } catch (err) {
-      if (err instanceof StoreConflictError) {
-        setConflict({ pending: draft.project, remote: err.existing })
-        return
-      }
-      applyProject(
-        {
-          ...draft.project,
-          name: draft.project.name.trim(),
-          updatedAt: new Date().toISOString(),
-          updatedBy: operator,
-        },
-        draft.key,
-        draft.isNew,
-      )
-      setDraft(null)
-      setNotice(err instanceof Error ? `${err.message}. Сохранено в браузере.` : 'Сохранено только в браузере')
-    }
   }
 
-  async function deleteDraft() {
+  function deleteDraft() {
     if (!draft || draft.isNew) return
     setProjects((prev) => prev.filter((p) => p.id !== draft.key))
     setDraft(null)
-    if (isFolderConnected()) {
-      try {
-        await deleteProjectFromFolder(draft.key)
-      } catch (err) {
-        setNotice(err instanceof Error ? err.message : 'Не удалось удалить файл в папке')
-      }
-    }
   }
 
-  async function handleExport() {
+  async function handleExportPrice() {
     setBusy(true)
     setNotice('')
     try {
-      await exportWorkbook(projects, catalogs)
-      setNotice('Файл Excel сохранён')
+      if (!price.length) {
+        setNotice('Сначала загрузите прайс Excel')
+        return
+      }
+      await exportPriceWorkbook(price)
+      setNotice('Прайс Excel сохранён')
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось выгрузить Excel')
+      setNotice(err instanceof Error ? err.message : 'Не удалось выгрузить прайс')
     } finally {
       setBusy(false)
     }
   }
 
-  async function handleImport(file: File) {
+  async function handleImportPrice(file: File) {
     setBusy(true)
     setNotice('')
     try {
-      const imported = await importWorkbook(file)
+      const imported = await importPriceWorkbook(file)
       if (!imported.length) {
-        setNotice('В файле нет строк проектов')
+        setNotice('В файле нет строк прайса')
         return
       }
-      setProjects(imported)
-      setView('projects')
-      setNotice(`Загружено проектов: ${imported.length}`)
+      setPrice(imported)
+      setNotice(`Загружен прайс: ${imported.length} позиций. В бланке можно выбирать строки по артикулу.`)
     } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать Excel')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handlePickFolder() {
-    setBusy(true)
-    setNotice('')
-    try {
-      const result = await connectSharedFolder({ projects, catalogs })
-      setFolder(getFolderSession())
-      setProjects(result.projects)
-      if (result.catalogs) setCatalogs(result.catalogs)
-      setNotice(
-        result.seeded
-          ? `Папка «${result.name}» была пустой — записали текущие бланки`
-          : `Загружено из папки «${result.name}»: ${result.projects.length}`,
-      )
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setNotice(err instanceof Error ? err.message : 'Не удалось подключить папку')
-    } finally {
-      setBusy(false)
-      setFolder(getFolderSession())
-    }
-  }
-
-  async function handleResumeFolder() {
-    setBusy(true)
-    setNotice('')
-    try {
-      const loaded = await resumeSharedFolder()
-      setFolder(getFolderSession())
-      setProjects(loaded.projects)
-      if (loaded.catalogs) setCatalogs(loaded.catalogs)
-      setNotice(`Папка «${getFolderSession().name}» открыта, бланков: ${loaded.projects.length}`)
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось открыть папку')
-    } finally {
-      setBusy(false)
-      setFolder(getFolderSession())
-    }
-  }
-
-  async function handleReloadFolder() {
-    setBusy(true)
-    setNotice('')
-    try {
-      const loaded = await loadSharedFolder()
-      setProjects(loaded.projects)
-      if (loaded.catalogs) setCatalogs(loaded.catalogs)
-      setNotice(`Прочитано из папки: ${loaded.projects.length}`)
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать папку')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleWriteAll() {
-    setBusy(true)
-    setNotice('')
-    try {
-      await writeAllToFolder(projects, catalogs)
-      setNotice('Все бланки, справочники и registry.xlsx записаны в папку')
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось записать папку')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleWriteExcel() {
-    setBusy(true)
-    setNotice('')
-    try {
-      await writeExcelSnapshot(projects, catalogs)
-      setNotice('registry.xlsx обновлён в папке')
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось записать Excel')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleDisconnect() {
-    await disconnectSharedFolder()
-    setFolder(getFolderSession())
-    setNotice('Папка отключена. Копия остаётся в этом браузере.')
-  }
-
-  async function handleImportJson(files: FileList) {
-    setBusy(true)
-    setNotice('')
-    try {
-      const imported = await importJsonFiles(files)
-      if (!imported.projects.length && !imported.catalogs) {
-        setNotice('В JSON нет бланков')
-        return
-      }
-      if (imported.projects.length) {
-        setProjects((prev) => {
-          const map = new Map(prev.map((p) => [p.id, p]))
-          for (const project of imported.projects) map.set(project.id, project)
-          return [...map.values()]
-        })
-      }
-      if (imported.catalogs) setCatalogs(imported.catalogs)
-      setView('projects')
-      setNotice(`Загружено из JSON: ${imported.projects.length}`)
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать JSON')
+      setNotice(err instanceof Error ? err.message : 'Не удалось прочитать прайс Excel')
     } finally {
       setBusy(false)
     }
@@ -436,61 +259,24 @@ export default function App() {
           onLogout={() => handleApiLogout()}
           onReload={() => handleApiReload()}
         />
-        <FolderPanel
-          supported={canUseFolderPicker()}
-          connected={folder.connected}
-          needsGesture={folder.needsGesture}
-          folderName={folder.name}
+        <LocalPanel
           operator={operator}
-          busy={busy}
           onOperatorChange={(name) => {
             setOperator(name)
             saveOperator(name)
           }}
-          onPickFolder={() => void handlePickFolder()}
-          onResume={() => void handleResumeFolder()}
-          onReload={() => void handleReloadFolder()}
-          onWriteAll={() => void handleWriteAll()}
-          onWriteExcel={() => void handleWriteExcel()}
-          onDisconnect={() => void handleDisconnect()}
-          onDownloadJson={() => downloadJsonBundle(projects, catalogs)}
-          onImportJson={(files) => void handleImportJson(files)}
         />
       </aside>
 
       <div className="main">
         <header className="topbar">
-          <p>
-            {notice ||
-              (folder.connected
-                ? `Общая папка: ${folder.name}. Жёлтые поля обязательны.`
-                : 'Бланк менеджера = «Бланк информирования Ecophon». Жёлтые поля обязательны.')}
-          </p>
-          <div className="topbar-actions">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                e.target.value = ''
-                if (file) void handleImport(file)
-              }}
-            />
-            <button type="button" className="ghost" disabled={busy} onClick={() => fileRef.current?.click()}>
-              Загрузить Excel
-            </button>
-            <button type="button" className="primary" disabled={busy} onClick={() => void handleExport()}>
-              Выгрузить всё в Excel
-            </button>
-          </div>
+          <p>{notice || 'Бланк менеджера = «Бланк информирования Ecophon». Жёлтые поля обязательны.'}</p>
         </header>
 
         {view === 'dashboard' && (
           <Dashboard
             projects={projects}
-            catalogs={catalogs}
+            catalogs={viewCatalogs}
             onOpenProject={(id) => {
               const found = projects.find((p) => p.id === id)
               if (found) openExisting(found)
@@ -504,7 +290,7 @@ export default function App() {
         {view === 'projects' && (
           <ProjectsPage
             projects={projects}
-            catalogs={catalogs}
+            catalogs={viewCatalogs}
             preset={preset}
             onPresetChange={setPreset}
             onCreate={openNew}
@@ -512,44 +298,29 @@ export default function App() {
           />
         )}
         {view === 'catalogs' && (
-          <CatalogsPage catalogs={catalogs} lockedKeys={apiLockedKeys} onChange={setCatalogs} />
+          <CatalogsPage
+            catalogs={viewCatalogs}
+            loadedFromApi={Boolean(apiUser)}
+            busy={busy}
+            onAddReference={handleAddReference}
+            onAddSgManager={handleAddSgManager}
+          />
         )}
       </div>
 
       {draft && (
         <BlankForm
           project={draft.project}
-          catalogs={catalogs}
-          materials={crmMaterials}
+          catalogs={viewCatalogs}
+          price={price}
+          busy={busy}
+          onImportPrice={(file) => void handleImportPrice(file)}
+          onExportPrice={() => void handleExportPrice()}
           isNew={draft.isNew}
           onChange={(project) => setDraft({ ...draft, project })}
-          onSave={() => void saveDraft(false)}
+          onSave={saveDraft}
           onClose={() => setDraft(null)}
-          onDelete={draft.isNew ? undefined : () => void deleteDraft()}
-        />
-      )}
-
-      {conflict && (
-        <ConflictDialog
-          remote={conflict.remote}
-          localName={conflict.pending.name}
-          onUseRemote={(project) => {
-            setProjects((prev) => {
-              if (prev.some((p) => p.id === project.id)) {
-                return prev.map((p) => (p.id === project.id ? project : p))
-              }
-              return [...prev, project]
-            })
-            setDraft((current) =>
-              current && (current.key === project.id || current.project.id === project.id)
-                ? { ...current, isNew: false, key: project.id, project }
-                : current,
-            )
-            setConflict(null)
-            setNotice('Открыта версия из папки')
-          }}
-          onOverwrite={() => void saveDraft(true)}
-          onCancel={() => setConflict(null)}
+          onDelete={draft.isNew ? undefined : deleteDraft}
         />
       )}
     </div>

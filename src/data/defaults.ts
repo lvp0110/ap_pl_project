@@ -8,43 +8,13 @@ export function emptyMaterial(): MaterialLine {
 
 export const MATERIAL_ROWS = 10
 
-export const DEFAULT_CATALOGS: Catalogs = {
-  sources: [
-    'Работа с подрядчиком',
-    'Архитектор / проектировщик',
-    'Заказчик / инвестор',
-    'Входящий запрос',
-    'Партнёр / дилер',
-    'Продажи',
-    'Другое',
-  ],
-  purposes: [
-    'Школа',
-    'Детский сад',
-    'Колледж / техникум',
-    'Университет',
-    'Офис',
-    'Спортивный объект',
-    'Гостиница',
-    'Медицинский объект',
-    'Театр / концертный зал',
-    'Ресторан / кафе',
-    'Жилой объект',
-    'Промышленный объект',
-    'Административное здание',
-    'Другое',
-  ],
-  stages: [
-    'Концепция',
-    'Проектирование',
-    'Тендер / закупка',
-    'Строительство',
-    'Комплектация',
-    'Отгрузка',
-  ],
+/** Поля бланка, которых нет в CRM references: календарь и служебные да/нет. */
+const FORM_LISTS: Pick<
+  Catalogs,
+  'probabilities' | 'yesNo' | 'reservationStatuses' | 'months' | 'years' | 'deliveryYears' | 'days'
+> = {
   probabilities: ['10%', '30%', '50%', '70%', '90%'],
   yesNo: ['Да', 'Нет', 'Не требуется'],
-  units: ['шт.', 'м²', 'упак.', 'компл.', 'п.м.'],
   reservationStatuses: ['Зарезервировано', 'Отказ', 'На рассмотрении'],
   months: [
     'Январь',
@@ -63,40 +33,21 @@ export const DEFAULT_CATALOGS: Catalogs = {
   years: Array.from({ length: 16 }, (_, i) => String(2020 + i)),
   deliveryYears: Array.from({ length: 11 }, (_, i) => String(2020 + i)),
   days: Array.from({ length: 31 }, (_, i) => String(i + 1)),
-  managersAG: [
-    'Бабарыкина Ирина',
-    'Сохряков Илья',
-    'Желебовский Михаил',
-    'Масленников Андрей',
-    'Климов Александр',
-    'Зуева Ольга',
-    'Фомишина Анна',
-    'Майорова Полина',
-    'Барчуков Сергей',
-    'Ефременко Евгений',
-    'Семина Карина',
-    'Ветлин Кирилл',
-    'Степанова Дарья',
-    'Цупин Александр',
-    'Звездилина Ангелина',
-    'Екимова Ирина',
-    'Кривошеева Евгения',
-    'Ребро Андрей',
-    'Шагалиев Данис',
-    'Газзатова Розалия',
-    'Яровая Евгения',
-    'Нечаев Виталий',
-    'Тархов Сергей',
-    'Андреева Юлия',
-    'Калини Иван',
-    'Хлупин Александр',
-    'Даниил Лившиц',
-    'Савинова Елена',
-  ],
-  priorities: [],
-  regions: [],
-  documentationTypes: [],
-  managersSG: [],
+}
+
+export function emptyCatalogs(): Catalogs {
+  return {
+    sources: [],
+    purposes: [],
+    stages: [],
+    units: [],
+    managersAG: [],
+    priorities: [],
+    regions: [],
+    documentationTypes: [],
+    managersSG: [],
+    ...structuredClone(FORM_LISTS),
+  }
 }
 
 export function emptyProject(id = ''): Project {

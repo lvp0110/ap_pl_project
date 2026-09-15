@@ -13,6 +13,16 @@ export type MaterialLine = {
   note: string
 }
 
+export type PriceItem = {
+  id: string
+  article: string
+  name: string
+  price: number
+  priceUnit: string
+  qtyUnit: string
+  label: string
+}
+
 export type Project = {
   id: string
   applicationNumber: string

@@ -19,7 +19,7 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
   }
 
   return (
-    <section className="folder-panel">
+    <section className="sidebar-panel">
       <h3>API ConstrTodo</h3>
       {user ? (
         <>
@@ -27,8 +27,8 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
             Сессия: {user.email}
             {user.role_type ? ` · ${user.role_type}` : ''}
           </p>
-          <p>Этап 1: справочники, материалы Ecophon и менеджеры СГ. Бланки пока в браузере / папке.</p>
-          <div className="folder-actions">
+          <p>Справочники — из API. Прайс материалов — из Excel. Бланки пока в этом браузере.</p>
+          <div className="sidebar-actions">
             <button type="button" className="ghost" disabled={busy} onClick={() => void onReload()}>
               Обновить из API
             </button>
@@ -39,9 +39,9 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
         </>
       ) : (
         <>
-          <p>Войдите учётной записью ConstrTodo (роль manager или admin), чтобы подтянуть справочники CRM.</p>
-          <form className="folder-actions" onSubmit={(e) => void submit(e)}>
-            <label className="folder-operator">
+          <p>Войдите учётной записью ConstrTodo (роль manager или admin). Без сессии справочники CRM пустые.</p>
+          <form className="sidebar-actions" onSubmit={(e) => void submit(e)}>
+            <label className="sidebar-field">
               Email
               <input
                 type="email"
@@ -51,7 +51,7 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
                 required
               />
             </label>
-            <label className="folder-operator">
+            <label className="sidebar-field">
               Пароль
               <input
                 type="password"
