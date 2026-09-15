@@ -296,6 +296,19 @@ h3,
 .panel h2 {
   font-size: 20px;
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.api-badge {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
 }
 
 .panel h3 {
@@ -743,7 +756,6 @@ legend {
 }
 
 .folder-panel {
-  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid #3a332e;
   display: flex;
@@ -751,6 +763,10 @@ legend {
   gap: 8px;
   font-size: 12px;
   color: #c4b8aa;
+}
+
+.sidebar .folder-panel:last-of-type {
+  margin-top: auto;
 }
 
 .folder-panel h3 {

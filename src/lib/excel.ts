@@ -61,6 +61,10 @@ export async function buildWorkbookBuffer(projects: Project[], catalogs: Catalog
   writeCatalogColumn(lists, 10, 'Год', catalogs.years)
   writeCatalogColumn(lists, 11, 'День', catalogs.days)
   writeCatalogColumn(lists, 12, 'Ответственные АГ', catalogs.managersAG)
+  writeCatalogColumn(lists, 13, 'Приоритет', catalogs.priorities)
+  writeCatalogColumn(lists, 14, 'Регион', catalogs.regions)
+  writeCatalogColumn(lists, 15, 'Документация', catalogs.documentationTypes)
+  writeCatalogColumn(lists, 16, 'Менеджеры СГ', catalogs.managersSG)
 
   const sheet = wb.addWorksheet('Реестр бланков')
   const headers = [

@@ -61,7 +61,19 @@ npm run dev
 
 Safari и Firefox папку не пишут — используйте **Скачать JSON** / **Загрузить JSON** или Excel.
 
-Позже тот же формат JSON садится на свой бэкенд (`GET/PUT /api/blanks`, конфликт через `If-Match` / `updatedAt`) без переделки формы.
+## API ConstrTodo (этап 1)
+
+Swagger: `http://localhost:3005/swagger/index.html` (теги `crm references`, `crm brand managers`, `crm sg managers`).
+
+Локально Vite проксирует `/login`, `/auth`, `/crm` на ConstrTodo (`UPSTREAM_TARGET`, по умолчанию `http://localhost:3005`). Войдите в боковой панели — подтянутся справочники и материалы бренда `ecophon` (`VITE_CRM_BRAND`).
+
+| Этап | Данные | Статус |
+|---|---|---|
+| 1 | `GET /crm/references/{type}`, `GET /crm/materials`, `GET /crm/sg-managers` | сделано |
+| 2 | запись справочников и материалов через API | позже |
+| 3 | бланки проектов | в swagger нет `/crm/projects` |
+
+Бланки по-прежнему живут в браузере и общей папке.
 
 ## Стек
 

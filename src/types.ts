@@ -63,6 +63,10 @@ export type Catalogs = {
   deliveryYears: string[]
   days: string[]
   managersAG: string[]
+  priorities: string[]
+  regions: string[]
+  documentationTypes: string[]
+  managersSG: string[]
 }
 
 export type AppView = 'dashboard' | 'projects' | 'catalogs'

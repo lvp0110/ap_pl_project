@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
+import type { CrmMaterial } from '../lib/api/types'
 import { collectBlankErrors } from '../lib/validate'
 import type { Catalogs, Contact, MaterialLine, Project } from '../types'
 
 type Props = {
   project: Project
   catalogs: Catalogs
+  materials: CrmMaterial[]
   isNew: boolean
   onChange: (next: Project) => void
   onSave: () => void
@@ -13,9 +15,21 @@ type Props = {
   onDelete?: () => void
 }
 
+function matchMaterial(materials: CrmMaterial[], article: string, name: string): CrmMaterial | undefined {
+  const art = article.trim().toLowerCase()
+  const nm = name.trim().toLowerCase()
+  if (art) {
+    const byArticle = materials.find((m) => (m.article || '').trim().toLowerCase() === art)
+    if (byArticle) return byArticle
+  }
+  if (nm) return materials.find((m) => m.name.trim().toLowerCase() === nm)
+  return undefined
+}
+
 export function BlankForm({
   project,
   catalogs,
+  materials,
   isNew,
   onChange,
   onSave,
@@ -47,9 +61,22 @@ export function BlankForm({
     patch({ contacts: { ...project.contacts, [key]: next } })
   }
 
-  function setMaterial(index: number, next: MaterialLine) {
-    const materials = project.materials.map((line, i) => (i === index ? next : line))
-    patch({ materials })
+  function setMaterial(index: number, next: MaterialLine, fromCatalog = false) {
+    let line = next
+    if (fromCatalog) {
+      const hit = matchMaterial(materials, next.article, next.name)
+      if (hit) {
+        line = {
+          ...next,
+          article: hit.article || next.article,
+          name: hit.name || next.name,
+          unit: hit.unit || next.unit,
+          note: next.note || hit.comment || '',
+        }
+      }
+    }
+    const rows = project.materials.map((current, i) => (i === index ? line : current))
+    patch({ materials: rows })
   }
 
   function handleSubmit() {
@@ -334,14 +361,20 @@ export function BlankForm({
                     <tr key={index}>
                       <td>
                         <input
+                          list="crm-material-articles"
                           value={line.article}
-                          onChange={(e) => setMaterial(index, { ...line, article: e.target.value })}
+                          onChange={(e) =>
+                            setMaterial(index, { ...line, article: e.target.value }, true)
+                          }
                         />
                       </td>
                       <td className={invalid(`material-${index}-name`) ? 'cell-invalid' : undefined}>
                         <input
+                          list="crm-material-names"
                           value={line.name}
-                          onChange={(e) => setMaterial(index, { ...line, name: e.target.value })}
+                          onChange={(e) =>
+                            setMaterial(index, { ...line, name: e.target.value }, true)
+                          }
                         />
                       </td>
                       <td className={invalid(`material-${index}-quantity`) ? 'cell-invalid' : undefined}>
@@ -382,6 +415,22 @@ export function BlankForm({
                 </tbody>
               </table>
             </div>
+            {materials.length > 0 && (
+              <>
+                <datalist id="crm-material-articles">
+                  {materials
+                    .filter((m) => m.article)
+                    .map((m) => (
+                      <option key={`art-${m.id}`} value={m.article || ''} label={m.name} />
+                    ))}
+                </datalist>
+                <datalist id="crm-material-names">
+                  {materials.map((m) => (
+                    <option key={`name-${m.id}`} value={m.name} label={m.article || m.name} />
+                  ))}
+                </datalist>
+              </>
+            )}
           </fieldset>
 
           <footer className="blank-foot">

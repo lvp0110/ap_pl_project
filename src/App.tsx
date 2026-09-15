@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ApiPanel } from './components/ApiPanel'
 import { CatalogsPage } from './components/CatalogsPage'
 import { ConflictDialog } from './components/ConflictDialog'
 import { Dashboard } from './components/Dashboard'
@@ -26,6 +27,9 @@ import {
   writeExcelSnapshot,
 } from './lib/repo/session'
 import { loadState, nextId, saveCatalogs, saveProjects } from './lib/storage'
+import { ApiError } from './lib/api/client'
+import { loadCrmCatalogs, loadSession, login, logout, mergeCrmCatalogs, userDisplayName } from './lib/api/crm'
+import { API_LOCKED_CATALOG_KEYS, type AuthUser, type CrmMaterial } from './lib/api/types'
 import type { BlankEnvelope } from './lib/repo/types'
 import type { AppView, Catalogs, Project, ProjectPreset } from './types'
 
@@ -41,6 +45,9 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [operator, setOperator] = useState(loadOperator)
+  const [apiUser, setApiUser] = useState<AuthUser | null>(null)
+  const [crmMaterials, setCrmMaterials] = useState<CrmMaterial[]>([])
+  const [apiLockedKeys, setApiLockedKeys] = useState<ReadonlySet<keyof Catalogs>>(new Set())
   const [folder, setFolder] = useState(getFolderSession)
   const [folderReady, setFolderReady] = useState(false)
   const [conflict, setConflict] = useState<{ pending: Project; remote: BlankEnvelope } | null>(null)
@@ -82,6 +89,80 @@ export default function App() {
     }, 900)
     return () => window.clearTimeout(timer)
   }, [catalogs, folder.connected, folderReady])
+
+  async function pullCrm(user: AuthUser) {
+    const loaded = await loadCrmCatalogs()
+    setCrmMaterials(loaded.materials)
+    setCatalogs((prev) => mergeCrmCatalogs(prev, loaded.catalogs))
+    const locked = new Set(
+      API_LOCKED_CATALOG_KEYS.filter((key) => loaded.catalogs[key].length > 0),
+    )
+    setApiLockedKeys(locked)
+    if (!loadOperator()) {
+      const name = userDisplayName(user)
+      if (name) {
+        setOperator(name)
+        saveOperator(name)
+      }
+    }
+    setNotice(
+      `API: справочники обновлены, материалов ${loaded.materials.length}. Бланки проектов пока хранятся локально — в Swagger нет /crm/projects.`,
+    )
+  }
+
+  useEffect(() => {
+    if (!folderReady) return
+    void (async () => {
+      const user = await loadSession()
+      if (!user) return
+      setApiUser(user)
+      try {
+        await pullCrm(user)
+      } catch (err) {
+        setNotice(err instanceof Error ? err.message : 'Сессия есть, но справочники CRM не загрузились')
+      }
+    })()
+  }, [folderReady])
+
+  async function handleApiLogin(email: string, password: string) {
+    setBusy(true)
+    setNotice('')
+    try {
+      const user = await login(email, password)
+      setApiUser(user)
+      await pullCrm(user)
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось войти')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleApiLogout() {
+    setBusy(true)
+    try {
+      await logout()
+    } finally {
+      setApiUser(null)
+      setCrmMaterials([])
+      setApiLockedKeys(new Set())
+      setBusy(false)
+      setNotice('API отключён. Справочники остаются последней копией в браузере.')
+    }
+  }
+
+  async function handleApiReload() {
+    if (!apiUser) return
+    setBusy(true)
+    setNotice('')
+    try {
+      await pullCrm(apiUser)
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Не удалось обновить данные API')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   function applyProject(project: Project, key: string, isNew: boolean) {
     setProjects((prev) => {
@@ -348,6 +429,13 @@ export default function App() {
             Справочники
           </button>
         </nav>
+        <ApiPanel
+          user={apiUser}
+          busy={busy}
+          onLogin={handleApiLogin}
+          onLogout={() => handleApiLogout()}
+          onReload={() => handleApiReload()}
+        />
         <FolderPanel
           supported={canUseFolderPicker()}
           connected={folder.connected}
@@ -424,7 +512,7 @@ export default function App() {
           />
         )}
         {view === 'catalogs' && (
-          <CatalogsPage catalogs={catalogs} onChange={setCatalogs} />
+          <CatalogsPage catalogs={catalogs} lockedKeys={apiLockedKeys} onChange={setCatalogs} />
         )}
       </div>
 
@@ -432,6 +520,7 @@ export default function App() {
         <BlankForm
           project={draft.project}
           catalogs={catalogs}
+          materials={crmMaterials}
           isNew={draft.isNew}
           onChange={(project) => setDraft({ ...draft, project })}
           onSave={() => void saveDraft(false)}

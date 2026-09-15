@@ -29,16 +29,17 @@ export type BundleEnvelope = {
 }
 
 /**
- * Контракт хранилища. Сейчас — файлы в выбранной папке.
- * Позже тот же контракт закрывает свой бэкенд, форма бланка не меняется.
+ * Контракт хранилища бланков. Сейчас — файлы в выбранной папке / localStorage.
  *
- * HTTP-набросок:
+ * CRM API ConstrTodo (swagger /crm):
+ *   этап 1 — GET справочники, материалы, менеджеры СГ
+ *   позже — бланки проектов, когда появится /crm/projects
+ *
+ * Набросок бланков:
  *   GET    /api/blanks
  *   GET    /api/blanks/:id
  *   PUT    /api/blanks/:id     If-Match: updatedAt → 409 при конфликте
  *   DELETE /api/blanks/:id
- *   GET    /api/catalogs
- *   PUT    /api/catalogs
  */
 export type DataStore = {
   kind: 'folder' | 'http'

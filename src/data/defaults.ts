@@ -93,6 +93,10 @@ export const DEFAULT_CATALOGS: Catalogs = {
     'Даниил Лившиц',
     'Савинова Елена',
   ],
+  priorities: [],
+  regions: [],
+  documentationTypes: [],
+  managersSG: [],
 }
 
 export function emptyProject(id = ''): Project {
