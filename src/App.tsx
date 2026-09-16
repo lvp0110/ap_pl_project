@@ -9,18 +9,28 @@ import { emptyCatalogs, emptyProject } from './data/defaults'
 import { catalogsWithPriceUnits, exportPriceWorkbook, importPriceWorkbook } from './lib/excel'
 import { loadOperator, saveOperator } from './lib/repo/operator'
 import { loadPriceList, loadState, nextId, savePriceList, saveProjects } from './lib/storage'
-import { ApiError } from './lib/api/client'
 import {
+  archiveReference,
+  archiveSgManager,
   catalogsFromCrm,
   createReference,
   createSgManager,
+  emptyReferences,
   loadCrmCatalogs,
   loadSession,
   login,
   logout,
+  updateReference,
+  updateSgManager,
   userDisplayName,
 } from './lib/api/crm'
-import { CATALOG_REFERENCE_TYPES, type AuthUser } from './lib/api/types'
+import {
+  CATALOG_REFERENCE_TYPES,
+  type AuthUser,
+  type CrmReferenceType,
+  type CrmReferenceValue,
+  type CrmSgManager,
+} from './lib/api/types'
 import type { AppView, Catalogs, Project, ProjectPreset } from './types'
 
 type Draft = { project: Project; isNew: boolean; key: string }
@@ -30,6 +40,8 @@ export default function App() {
   const [view, setView] = useState<AppView>('dashboard')
   const [projects, setProjects] = useState<Project[]>(initial.projects)
   const [catalogs, setCatalogs] = useState(emptyCatalogs)
+  const [references, setReferences] = useState(emptyReferences)
+  const [sgManagers, setSgManagers] = useState<CrmSgManager[]>([])
   const [price, setPrice] = useState(loadPriceList)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [preset, setPreset] = useState<ProjectPreset>('all')
@@ -45,6 +57,8 @@ export default function App() {
   async function pullCrm(user: AuthUser) {
     const loaded = await loadCrmCatalogs()
     setCatalogs(catalogsFromCrm(loaded.catalogs))
+    setReferences(loaded.references)
+    setSgManagers(loaded.sgManagers)
     if (!loadOperator()) {
       const name = userDisplayName(user)
       if (name) {
@@ -78,7 +92,7 @@ export default function App() {
       setApiUser(user)
       await pullCrm(user)
     } catch (err) {
-      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось войти')
+      setNotice(err instanceof Error ? err.message : 'Не удалось войти')
     } finally {
       setBusy(false)
     }
@@ -91,6 +105,8 @@ export default function App() {
     } finally {
       setApiUser(null)
       setCatalogs(emptyCatalogs())
+      setReferences(emptyReferences())
+      setSgManagers([])
       setBusy(false)
       setNotice('API отключён. Справочники CRM сброшены — они доступны только из API.')
     }
@@ -109,37 +125,70 @@ export default function App() {
     }
   }
 
-  async function handleAddReference(key: keyof Catalogs, name: string) {
-    const type = CATALOG_REFERENCE_TYPES[key as keyof typeof CATALOG_REFERENCE_TYPES]
-    if (!apiUser || !type) return
+  async function writeToCrm(action: () => Promise<void>, success: string, failure: string) {
+    if (!apiUser) return
     setBusy(true)
     setNotice('')
     try {
-      await createReference(type, name, catalogs[key].length + 1)
+      await action()
       await pullCrm(apiUser)
-      setNotice(`Значение «${name}» записано в API.`)
+      setNotice(success)
     } catch (err) {
-      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось добавить значение')
+      setNotice(err instanceof Error ? err.message : failure)
       throw err
     } finally {
       setBusy(false)
     }
   }
 
+  async function handleAddReference(key: keyof Catalogs, name: string) {
+    const type = CATALOG_REFERENCE_TYPES[key as keyof typeof CATALOG_REFERENCE_TYPES]
+    if (!type) return
+    await writeToCrm(
+      () => createReference(type, name, catalogs[key].length + 1),
+      `Значение «${name}» записано в API.`,
+      'Не удалось добавить значение',
+    )
+  }
+
+  async function handleUpdateReference(type: CrmReferenceType, value: CrmReferenceValue, name: string) {
+    await writeToCrm(
+      () => updateReference(type, value, name),
+      `Значение «${value.name}» переименовано в «${name}».`,
+      'Не удалось переименовать значение',
+    )
+  }
+
+  async function handleArchiveReference(type: CrmReferenceType, value: CrmReferenceValue) {
+    await writeToCrm(
+      () => archiveReference(type, value.id),
+      `Значение «${value.name}» убрано из справочника.`,
+      'Не удалось убрать значение',
+    )
+  }
+
   async function handleAddSgManager(name: string, email: string) {
-    if (!apiUser) return
-    setBusy(true)
-    setNotice('')
-    try {
-      await createSgManager(name, email)
-      await pullCrm(apiUser)
-      setNotice(`Менеджер СГ «${name}» записан через API.`)
-    } catch (err) {
-      setNotice(err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Не удалось добавить менеджера СГ')
-      throw err
-    } finally {
-      setBusy(false)
-    }
+    await writeToCrm(
+      () => createSgManager(name, email),
+      `Менеджер СГ «${name}» записан через API.`,
+      'Не удалось добавить менеджера СГ',
+    )
+  }
+
+  async function handleUpdateSgManager(manager: CrmSgManager, name: string, email: string) {
+    await writeToCrm(
+      () => updateSgManager(manager, name, email),
+      `Менеджер СГ «${manager.name}» обновлён.`,
+      'Не удалось обновить менеджера СГ',
+    )
+  }
+
+  async function handleArchiveSgManager(manager: CrmSgManager) {
+    await writeToCrm(
+      () => archiveSgManager(manager.id),
+      `Менеджер СГ «${manager.name}» убран из справочника.`,
+      'Не удалось убрать менеджера СГ',
+    )
   }
 
   function applyProject(project: Project, key: string, isNew: boolean) {
@@ -300,10 +349,16 @@ export default function App() {
         {view === 'catalogs' && (
           <CatalogsPage
             catalogs={viewCatalogs}
+            references={references}
+            sgManagers={sgManagers}
             loadedFromApi={Boolean(apiUser)}
             busy={busy}
             onAddReference={handleAddReference}
+            onUpdateReference={handleUpdateReference}
+            onArchiveReference={handleArchiveReference}
             onAddSgManager={handleAddSgManager}
+            onUpdateSgManager={handleUpdateSgManager}
+            onArchiveSgManager={handleArchiveSgManager}
           />
         )}
       </div>

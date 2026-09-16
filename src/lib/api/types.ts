@@ -52,6 +52,13 @@ export type CrmSgManager = {
   is_active: boolean
 }
 
+export type CrmSnapshot = {
+  catalogs: CrmCatalogSnapshot
+  materials: CrmMaterial[]
+  references: Record<CrmReferenceType, CrmReferenceValue[]>
+  sgManagers: CrmSgManager[]
+}
+
 export type CrmCatalogSnapshot = {
   sources: string[]
   purposes: string[]

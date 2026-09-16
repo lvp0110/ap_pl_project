@@ -9,17 +9,31 @@ import {
   type CrmReferenceType,
   type CrmReferenceValue,
   type CrmSgManager,
+  type CrmSnapshot,
   type LoginResponse,
 } from './types'
 
 export const CRM_BRAND = (import.meta.env.VITE_CRM_BRAND || 'ecophon').trim() || 'ecophon'
 
-function names(values: CrmReferenceValue[]): string[] {
+export function emptyReferences(): Record<CrmReferenceType, CrmReferenceValue[]> {
+  return {
+    information_source: [],
+    segment: [],
+    project_stage: [],
+    priority: [],
+    documentation_type: [],
+    region: [],
+  }
+}
+
+export function activeReferences(values: CrmReferenceValue[]): CrmReferenceValue[] {
   return values
-    .filter((v) => v.is_active !== false)
+    .filter((v) => v.is_active !== false && v.name)
     .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ru'))
-    .map((v) => v.name)
-    .filter(Boolean)
+}
+
+function names(values: CrmReferenceValue[]): string[] {
+  return activeReferences(values).map((v) => v.name)
 }
 
 export function userDisplayName(user: AuthUser): string {
@@ -78,6 +92,17 @@ export async function createReference(
   })
 }
 
+export async function updateReference(type: CrmReferenceType, value: CrmReferenceValue, name: string): Promise<void> {
+  await apiRequest(`/crm/references/${type}/${value.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name, sort_order: value.sort_order, is_active: true }),
+  })
+}
+
+export async function archiveReference(type: CrmReferenceType, id: number): Promise<void> {
+  await apiRequest(`/crm/references/${type}/${id}`, { method: 'DELETE' })
+}
+
 export async function createSgManager(name: string, email: string): Promise<void> {
   await apiRequest('/crm/sg-managers', {
     method: 'POST',
@@ -85,7 +110,23 @@ export async function createSgManager(name: string, email: string): Promise<void
   })
 }
 
-export async function loadCrmCatalogs(): Promise<{ catalogs: CrmCatalogSnapshot; materials: CrmMaterial[] }> {
+export async function updateSgManager(manager: CrmSgManager, name: string, email: string): Promise<void> {
+  await apiRequest(`/crm/sg-managers/${manager.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name,
+      email,
+      is_active: true,
+      region_ids: manager.regions.map((r) => r.id),
+    }),
+  })
+}
+
+export async function archiveSgManager(id: number): Promise<void> {
+  await apiRequest(`/crm/sg-managers/${id}`, { method: 'DELETE' })
+}
+
+export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
   const [refs, materials, managers] = await Promise.all([
     Promise.all(CRM_REFERENCE_TYPES.map((type) => listReferences(type).then((rows) => [type, rows] as const))),
     listMaterials(),
@@ -95,6 +136,8 @@ export async function loadCrmCatalogs(): Promise<{ catalogs: CrmCatalogSnapshot;
   const units = [...new Set(materials.map((m) => m.unit).filter(Boolean))]
   return {
     materials,
+    references: byType,
+    sgManagers: managers.filter((m) => m.is_active !== false),
     catalogs: {
       sources: names(byType.information_source ?? []),
       purposes: names(byType.segment ?? []),
