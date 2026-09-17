@@ -1,7 +1,8 @@
 import { Controller, type Control } from 'react-hook-form'
 import type { CrmFormField, CrmProjectFile } from '../lib/api/projectTypes'
-import type { ProjectFormValues } from '../lib/projects/formValues'
+import { asMaterials, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
 import { ProjectListField } from './ProjectListField'
+import { ProjectMaterialsField } from './ProjectMaterialsField'
 
 const QUARTERS = ['1', '2', '3', '4']
 
@@ -83,7 +84,7 @@ export function ProjectFormField({
     )
   }
 
-  const span = field.type === 'text_area' || field.type === 'multiple_list'
+  const span = field.type === 'text_area' || field.type === 'multiple_list' || field.type === 'materials'
 
   return (
     <Controller
@@ -105,9 +106,14 @@ export function ProjectFormField({
 }
 
 type ControlledField = {
-  value: string | string[]
-  onChange: (value: string | string[]) => void
+  value: ProjectFieldValue
+  onChange: (value: ProjectFieldValue) => void
   onBlur: () => void
+}
+
+function toCodes(value: ProjectFieldValue): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
 }
 
 function renderControl(
@@ -119,12 +125,21 @@ function renderControl(
   const text = typeof controlled.value === 'string' ? controlled.value : ''
 
   switch (field.type) {
+    case 'materials':
+      return (
+        <ProjectMaterialsField
+          value={asMaterials(controlled.value)}
+          brand={parentValue}
+          disabled={busy}
+          onChange={controlled.onChange}
+        />
+      )
     case 'list':
     case 'multiple_list':
       return (
         <ProjectListField
           field={field}
-          value={controlled.value}
+          value={typeof controlled.value === 'string' ? controlled.value : toCodes(controlled.value)}
           parentValue={parentValue}
           disabled={busy}
           onChange={controlled.onChange}

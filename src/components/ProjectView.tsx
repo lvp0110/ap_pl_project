@@ -38,7 +38,11 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
           const parent = field.depends_on
             ? String(readValue(project, { ...field, code: field.depends_on }) || '')
             : ''
-          const wide = field.type === 'text_area' || field.type === 'multiple_list' || field.type === 'file'
+          const wide =
+            field.type === 'text_area' ||
+            field.type === 'multiple_list' ||
+            field.type === 'materials' ||
+            field.type === 'file'
           return (
             <div className={`project-view-row${wide ? ' project-view-wide' : ''}`} key={field.code}>
               <dt>{field.name}</dt>
@@ -50,37 +54,6 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         })}
       </dl>
 
-      {project.materials.length > 0 && (
-        <section className="panel">
-          <h2>Материалы</h2>
-          <div className="table-wrap">
-            <table className="grid">
-              <thead>
-                <tr>
-                  <th>Артикул</th>
-                  <th>Материал</th>
-                  <th>Количество</th>
-                  <th>Цена</th>
-                  <th>Сумма</th>
-                </tr>
-              </thead>
-              <tbody>
-                {project.materials.map((line) => (
-                  <tr key={line.id}>
-                    <td>{line.material.article || '—'}</td>
-                    <td className="name-cell">{line.material.name}</td>
-                    <td>
-                      {line.quantity} {line.material.unit}
-                    </td>
-                    <td>{line.unit_price}</td>
-                    <td>{line.line_amount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
     </div>
   )
 }

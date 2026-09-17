@@ -1,4 +1,4 @@
-import type { CrmBrand } from './types'
+import type { CrmBrand, CrmMaterial } from './types'
 
 export type CrmFieldType =
   | 'text'
@@ -8,7 +8,13 @@ export type CrmFieldType =
   | 'quarter'
   | 'list'
   | 'multiple_list'
+  | 'materials'
   | 'file'
+
+export type CrmProjectMaterialValue = {
+  material_id: number
+  quantity: number
+}
 
 export type CrmFormField = {
   type: CrmFieldType
@@ -51,7 +57,7 @@ export type CrmProjectFile = {
 
 export type CrmProjectMaterial = {
   id: number
-  material: { id: number; name: string; article?: string | null; unit: string }
+  material: CrmMaterial
   unit_price: number
   quantity: number
   line_amount: number

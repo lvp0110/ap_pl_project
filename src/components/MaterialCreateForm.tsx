@@ -47,7 +47,7 @@ export function MaterialCreateForm({ brand, busy, onCreate }: Props) {
       <input
         value={values.name}
         disabled={busy}
-        placeholder="Материал / решение *"
+        placeholder="Материал *"
         onChange={(e) => change('name', e.target.value)}
       />
       <input

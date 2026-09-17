@@ -797,6 +797,41 @@ legend {
   min-width: 80px;
 }
 
+.project-materials {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-materials .table-wrap {
+  max-height: 320px;
+}
+
+.project-materials .grid tbody tr {
+  cursor: default;
+}
+
+.project-materials .grid input {
+  width: 90px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.project-materials .grid .ghost {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.project-view .table-wrap {
+  max-height: 320px;
+}
+
+.project-view .grid tbody tr {
+  cursor: default;
+}
+
 .materials-create {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr 1fr 2fr auto;

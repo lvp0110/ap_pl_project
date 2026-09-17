@@ -1,6 +1,17 @@
-import type { CrmFormField, CrmProject, CrmProjectValues } from '../api/projectTypes'
+import type {
+  CrmFormField,
+  CrmProject,
+  CrmProjectMaterialValue,
+  CrmProjectValues,
+} from '../api/projectTypes'
 
-export type ProjectFormValues = Record<string, string | string[]>
+export type ProjectFieldValue = string | string[] | CrmProjectMaterialValue[]
+export type ProjectFormValues = Record<string, ProjectFieldValue>
+
+export function asMaterials(value: ProjectFieldValue | undefined): CrmProjectMaterialValue[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is CrmProjectMaterialValue => typeof item === 'object' && item !== null)
+}
 
 const EMPLOYEE_ENDPOINT = '/crm/project-options/employees'
 
@@ -12,7 +23,7 @@ export function defaultValues(fields: CrmFormField[]): ProjectFormValues {
   const values: ProjectFormValues = {}
   for (const field of fields) {
     if (!isEditable(field)) continue
-    values[field.code] = field.type === 'multiple_list' ? [] : ''
+    values[field.code] = field.type === 'multiple_list' || field.type === 'materials' ? [] : ''
   }
   return values
 }
@@ -40,8 +51,19 @@ function many(field: CrmFormField, raw: string[]): Array<string | number> {
   return raw.filter(Boolean).map((item) => (holdsNumericId(field) ? Number(item) : item))
 }
 
-export function readValue(project: CrmProject, field: CrmFormField): string | string[] {
+function toCodes(value: ProjectFieldValue | undefined): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+export function readValue(project: CrmProject, field: CrmFormField): ProjectFieldValue {
   if (field.code === 'brand_code') return project.brand?.code ?? ''
+  if (field.type === 'materials') {
+    return project.materials.map((line) => ({
+      material_id: line.material.id,
+      quantity: line.quantity,
+    }))
+  }
 
   const raw = (project as unknown as Record<string, unknown>)[field.code]
   if (raw === null || raw === undefined) return field.type === 'multiple_list' ? [] : ''
@@ -73,8 +95,13 @@ export function toPatch(
     const after = current[field.code]
     if (JSON.stringify(before ?? '') === JSON.stringify(after ?? '')) continue
 
+    if (field.type === 'materials') {
+      patch[field.code] = asMaterials(after)
+      continue
+    }
+
     if (field.type === 'multiple_list') {
-      patch[field.code] = many(field, Array.isArray(after) ? after : [])
+      patch[field.code] = many(field, toCodes(after))
       continue
     }
 
@@ -106,8 +133,14 @@ export function toPayload(fields: CrmFormField[], values: ProjectFormValues): Cr
     if (!isEditable(field)) continue
     const raw = values[field.code]
 
+    if (field.type === 'materials') {
+      const lines = asMaterials(raw)
+      if (lines.length) payload[field.code] = lines
+      continue
+    }
+
     if (field.type === 'multiple_list') {
-      const list = many(field, Array.isArray(raw) ? raw : [])
+      const list = many(field, toCodes(raw))
       if (list.length) payload[field.code] = list
       continue
     }

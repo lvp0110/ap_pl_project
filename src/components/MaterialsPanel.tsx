@@ -16,7 +16,7 @@ import { MaterialRow } from './MaterialRow'
 import { OptionCombobox } from './OptionCombobox'
 
 const BRANDS_ENDPOINT = '/crm/project-options/brands'
-const COLUMNS = '«Материал / решение», «Артикул», «Цена», «Единица измерения», «Комментарий»'
+const COLUMNS = '«Артикул», «Материал», «Стоимость», «Единица измерения», «Комментарий»'
 
 function describeWrite(err: unknown, fallback: string): string {
   const message = err instanceof Error ? err.message : ''
@@ -152,8 +152,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
     <section className="panel materials-panel">
       <h2>Материалы бренда</h2>
       <p className="hint">
-        Прайс загружается файлом Excel и хранится в CRM: колонки «Материал / решение», «Артикул», «Цена»,
-        «Единица измерения», «Комментарий».
+        Прайс загружается файлом Excel и хранится в CRM: колонки {COLUMNS}.
       </p>
 
       <div className="materials-toolbar">
@@ -201,7 +200,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
             <thead>
               <tr>
                 <th>Артикул</th>
-                <th>Материал / решение</th>
+                <th>Материал</th>
                 <th>Цена</th>
                 <th>Ед.</th>
                 <th>Комментарий</th>

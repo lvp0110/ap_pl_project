@@ -25,8 +25,48 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
     )
   }
 
+  if (field.type === 'materials') {
+    if (!project.materials.length) return <span className="value-empty">—</span>
+    return (
+      <div className="table-wrap">
+        <table className="grid">
+          <thead>
+            <tr>
+              <th>Артикул</th>
+              <th>Материал</th>
+              <th>Комментарий</th>
+              <th>Кол-во</th>
+              <th>Ед.</th>
+              <th>Цена</th>
+              <th>Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+            {project.materials.map((line) => (
+              <tr key={line.id}>
+                <td>{line.material.article || '—'}</td>
+                <td className="name-cell">{line.material.name}</td>
+                <td>{line.material.comment || '—'}</td>
+                <td>{line.quantity}</td>
+                <td>{line.material.unit}</td>
+                <td>{formatMoney(line.unit_price)}</td>
+                <td>{formatMoney(line.line_amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   if (field.type === 'list' || field.type === 'multiple_list') {
-    return <OptionValue field={field} value={value} parentValue={parentValue} />
+    return (
+      <OptionValue
+        field={field}
+        value={typeof value === 'string' ? value : value.filter((item) => typeof item === 'string')}
+        parentValue={parentValue}
+      />
+    )
   }
 
   const text = typeof value === 'string' ? value : ''
