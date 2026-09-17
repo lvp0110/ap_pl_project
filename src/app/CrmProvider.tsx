@@ -42,7 +42,6 @@ export function CrmProvider({
     setReferences(loaded.references)
     setSgManagers(loaded.sgManagers)
     setProjects(crm)
-    setNotice('API: справочники и проекты загружены. Прайс материалов — из Excel.')
   }, [])
 
   useEffect(() => {

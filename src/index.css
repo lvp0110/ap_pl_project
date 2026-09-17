@@ -132,28 +132,6 @@ h3,
   flex-direction: column;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 28px;
-  border-bottom: 1px solid var(--line);
-  background: var(--paper-2);
-}
-
-.topbar p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 13px;
-}
-
-.topbar-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .page {
   padding: 28px;
   display: flex;
@@ -708,6 +686,83 @@ legend {
   gap: 8px;
 }
 
+.project-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0;
+  margin: 0 0 20px;
+  border-top: 1px solid var(--line);
+}
+
+.project-view-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+.project-view-wide {
+  grid-column: 1 / -1;
+}
+
+.project-view dt {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.project-view dd {
+  margin: 0;
+}
+
+.value-empty {
+  color: var(--ink-soft);
+}
+
+.value-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.value-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-view-actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.saved-files {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.saved-files li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saved-files li.removed a {
+  text-decoration: line-through;
+  color: var(--ink-soft);
+}
+
+.saved-files .ghost {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
 .autocomplete-control {
   display: flex;
   flex-wrap: wrap;
@@ -1025,7 +1080,6 @@ legend {
     grid-template-columns: 1fr;
   }
 
-  .topbar,
   .page-head,
   .blank-head,
   .blank-foot {

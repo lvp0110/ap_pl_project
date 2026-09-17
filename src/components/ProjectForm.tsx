@@ -1,25 +1,35 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { createProject, loadProjectForm } from '../lib/api/projects'
+import { createProject, loadProjectForm, updateProject } from '../lib/api/projects'
 import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
-import { defaultValues, parentCodes, toPayload, type ProjectFormValues } from '../lib/projects/formValues'
+import {
+  defaultValues,
+  initialValues,
+  parentCodes,
+  toPatch,
+  toPayload,
+  type ProjectFormValues,
+} from '../lib/projects/formValues'
 import { ProjectFormField } from './ProjectFormField'
 
 type Props = {
-  onCreated: (project: CrmProject) => void
+  project?: CrmProject
+  onSaved: (project: CrmProject) => void
   onCancel: () => void
 }
 
 const SUPPLY_YEAR = 'planned_supply_year'
 const SUPPLY_QUARTER = 'planned_supply_quarter'
 
-export function ProjectForm({ onCreated, onCancel }: Props) {
+export function ProjectForm({ project, onSaved, onCancel }: Props) {
   const [fields, setFields] = useState<CrmFormField[]>([])
   const [access, setAccess] = useState<CrmProjectAccess | null>(null)
   const [documents, setDocuments] = useState<File[]>([])
+  const [removedFiles, setRemovedFiles] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState('')
+  const [initial, setInitial] = useState<ProjectFormValues>({})
 
   const {
     control,
@@ -40,7 +50,9 @@ export function ProjectForm({ onCreated, onCancel }: Props) {
         if (!active) return
         setFields(form.fields)
         setAccess(form.access)
-        reset(defaultValues(form.fields))
+        const start = project ? initialValues(form.fields, project) : defaultValues(form.fields)
+        setInitial(start)
+        reset(start)
       })
       .catch((err: unknown) => {
         if (active) setFailure(err instanceof Error ? err.message : 'Не удалось загрузить форму проекта')
@@ -51,7 +63,7 @@ export function ProjectForm({ onCreated, onCancel }: Props) {
     return () => {
       active = false
     }
-  }, [reset])
+  }, [reset, project])
 
   const selected = useMemo(() => {
     const map: Record<string, string> = {}
@@ -75,10 +87,19 @@ export function ProjectForm({ onCreated, onCancel }: Props) {
     setSaving(true)
     setFailure('')
     try {
-      const project = await createProject(toPayload(fields, entered), documents)
-      onCreated(project)
+      if (project) {
+        const patch = toPatch(fields, initial, entered)
+        if (removedFiles.length) patch.remove_file_ids = removedFiles
+        if (!Object.keys(patch).length && !documents.length) {
+          setFailure('Изменений нет.')
+          return
+        }
+        onSaved(await updateProject(project.id, patch, documents))
+        return
+      }
+      onSaved(await createProject(toPayload(fields, entered), documents))
     } catch (err) {
-      setFailure(err instanceof Error ? err.message : 'Не удалось создать проект')
+      setFailure(err instanceof Error ? err.message : 'Не удалось сохранить проект')
     } finally {
       setSaving(false)
     }
@@ -107,8 +128,8 @@ export function ProjectForm({ onCreated, onCancel }: Props) {
     <div className="page">
       <header className="page-head">
         <div>
-          <p className="eyebrow">CRM ConstrTodo</p>
-          <h1>Новый проект</h1>
+          <p className="eyebrow">CRM ConstrTodo{project ? ` · проект № ${project.id}` : ''}</p>
+          <h1>{project ? project.name || 'Без названия' : 'Новый проект'}</h1>
           <p className="lede">
             Форма приходит с сервера: {fields.length} полей, уровень доступа «{access}».
           </p>
@@ -129,13 +150,16 @@ export function ProjectForm({ onCreated, onCancel }: Props) {
               error={errors[field.code]?.message}
               files={documents}
               onFilesChange={setDocuments}
+              savedFiles={project?.files ?? []}
+              removedFiles={removedFiles}
+              onRemovedFilesChange={setRemovedFiles}
             />
           ))}
         </div>
 
         <div className="project-form-actions">
           <button type="submit" className="primary" disabled={saving}>
-            {saving ? 'Сохраняем…' : 'Создать проект'}
+            {saving ? 'Сохраняем…' : project ? 'Сохранить' : 'Создать проект'}
           </button>
           <button type="button" className="ghost" disabled={saving} onClick={onCancel}>
             Отмена

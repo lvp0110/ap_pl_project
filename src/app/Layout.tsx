@@ -40,9 +40,6 @@ export function Layout() {
       </aside>
 
       <div className="main">
-        <header className="topbar">
-          <p>{crm.notice || 'Бланк менеджера = «Бланк информирования Ecophon». Жёлтые поля обязательны.'}</p>
-        </header>
         <Outlet />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import type { CrmFormField, CrmProjectValues } from '../api/projectTypes'
+import type { CrmFormField, CrmProject, CrmProjectValues } from '../api/projectTypes'
 
 export type ProjectFormValues = Record<string, string | string[]>
 
@@ -38,6 +38,65 @@ function single(field: CrmFormField, raw: string): string | number | null {
 
 function many(field: CrmFormField, raw: string[]): Array<string | number> {
   return raw.filter(Boolean).map((item) => (holdsNumericId(field) ? Number(item) : item))
+}
+
+export function readValue(project: CrmProject, field: CrmFormField): string | string[] {
+  if (field.code === 'brand_code') return project.brand?.code ?? ''
+
+  const raw = (project as unknown as Record<string, unknown>)[field.code]
+  if (raw === null || raw === undefined) return field.type === 'multiple_list' ? [] : ''
+  if (Array.isArray(raw)) return raw.map((item) => String(item))
+  if (typeof raw === 'number') return raw === 0 && field.disabled ? '' : String(raw)
+  if (typeof raw === 'string') return raw
+  return ''
+}
+
+export function initialValues(fields: CrmFormField[], project: CrmProject): ProjectFormValues {
+  const values: ProjectFormValues = {}
+  for (const field of fields) {
+    if (!isEditable(field)) continue
+    values[field.code] = readValue(project, field)
+  }
+  return values
+}
+
+export function toPatch(
+  fields: CrmFormField[],
+  initial: ProjectFormValues,
+  current: ProjectFormValues,
+): CrmProjectValues {
+  const patch: CrmProjectValues = {}
+
+  for (const field of fields) {
+    if (!isEditable(field)) continue
+    const before = initial[field.code]
+    const after = current[field.code]
+    if (JSON.stringify(before ?? '') === JSON.stringify(after ?? '')) continue
+
+    if (field.type === 'multiple_list') {
+      patch[field.code] = many(field, Array.isArray(after) ? after : [])
+      continue
+    }
+
+    const text = typeof after === 'string' ? after.trim() : ''
+    if (!text) {
+      patch[field.code] = clearedValue(field)
+      continue
+    }
+    if (field.type === 'number' || field.type === 'quarter') {
+      patch[field.code] = Number(text)
+      continue
+    }
+    patch[field.code] = single(field, text)
+  }
+
+  return patch
+}
+
+function clearedValue(field: CrmFormField): string | number | null {
+  if (field.type === 'number' || field.type === 'quarter') return 0
+  if (field.type === 'text' || field.type === 'text_area') return ''
+  return null
 }
 
 export function toPayload(fields: CrmFormField[], values: ProjectFormValues): CrmProjectValues {

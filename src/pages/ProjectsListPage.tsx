@@ -107,6 +107,7 @@ export function ProjectsListPage() {
         }
         navigate('/projects/new')
       }}
+      onOpen={(project) => navigate(`/projects/${project.id}`)}
       onRefresh={() => {
         setReloadAt(Date.now())
         void crm.reload()

@@ -9,7 +9,9 @@ import { loadOperator } from './lib/repo/operator'
 import { CatalogsPage } from './pages/CatalogsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ProjectCreatePage } from './pages/ProjectCreatePage'
+import { ProjectEditPage } from './pages/ProjectEditPage'
 import { ProjectsListPage } from './pages/ProjectsListPage'
+import { ProjectViewPage } from './pages/ProjectViewPage'
 import type { AuthUser } from './lib/api/types'
 
 export default function App() {
@@ -40,6 +42,8 @@ function AppRoutes() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="projects" element={<ProjectsListPage />} />
           <Route path="projects/new" element={<ProjectCreatePage />} />
+          <Route path="projects/:id" element={<ProjectViewPage />} />
+          <Route path="projects/:id/edit" element={<ProjectEditPage />} />
           <Route path="catalogs" element={<CatalogsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

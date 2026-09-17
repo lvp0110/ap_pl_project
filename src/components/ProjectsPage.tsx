@@ -20,6 +20,7 @@ type Props = {
   onFilterChange: (code: string, value: string) => void
   onReset: () => void
   onCreate: () => void
+  onOpen: (project: CrmProject) => void
   onRefresh: () => void
 }
 
@@ -34,6 +35,7 @@ export function ProjectsPage({
   onFilterChange,
   onReset,
   onCreate,
+  onOpen,
   onRefresh,
 }: Props) {
   const applied = Object.keys(selected).length
@@ -114,7 +116,7 @@ export function ProjectsPage({
               </tr>
             ) : (
               projects.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} onClick={() => onOpen(p)}>
                   <td>{p.erp_code || p.id}</td>
                   <td className="name-cell">{p.name || 'Без названия'}</td>
                   <td>{p.brand.name}</td>

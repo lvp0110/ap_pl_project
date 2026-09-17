@@ -1,5 +1,5 @@
 import { Controller, type Control } from 'react-hook-form'
-import type { CrmFormField } from '../lib/api/projectTypes'
+import type { CrmFormField, CrmProjectFile } from '../lib/api/projectTypes'
 import type { ProjectFormValues } from '../lib/projects/formValues'
 import { ProjectListField } from './ProjectListField'
 
@@ -13,6 +13,9 @@ type Props = {
   error?: string
   files: File[]
   onFilesChange: (files: File[]) => void
+  savedFiles: CrmProjectFile[]
+  removedFiles: number[]
+  onRemovedFilesChange: (ids: number[]) => void
 }
 
 export function ProjectFormField({
@@ -23,6 +26,9 @@ export function ProjectFormField({
   error,
   files,
   onFilesChange,
+  savedFiles,
+  removedFiles,
+  onRemovedFilesChange,
 }: Props) {
   if (field.disabled) {
     return (
@@ -35,8 +41,36 @@ export function ProjectFormField({
 
   if (field.type === 'file') {
     return (
-      <label className="field field-span">
+      <div className="field field-span">
         <span className="field-label">{field.name}</span>
+        {savedFiles.length > 0 && (
+          <ul className="saved-files">
+            {savedFiles.map((saved) => {
+              const removed = removedFiles.includes(saved.id)
+              return (
+                <li key={saved.id} className={removed ? 'removed' : ''}>
+                  <a href={saved.download_url} target="_blank" rel="noreferrer">
+                    {saved.original_name}
+                  </a>
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={busy}
+                    onClick={() =>
+                      onRemovedFilesChange(
+                        removed
+                          ? removedFiles.filter((id) => id !== saved.id)
+                          : [...removedFiles, saved.id],
+                      )
+                    }
+                  >
+                    {removed ? 'Вернуть' : 'Убрать'}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
         <input
           type="file"
           multiple
@@ -45,7 +79,7 @@ export function ProjectFormField({
           onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
         />
         {files.length > 0 && <span className="field-hint">{files.map((f) => f.name).join(', ')}</span>}
-      </label>
+      </div>
     )
   }
 

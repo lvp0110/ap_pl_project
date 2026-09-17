@@ -18,7 +18,7 @@ export function ProjectCreatePage() {
 
   return (
     <ProjectForm
-      onCreated={(project) => {
+      onSaved={(project) => {
         crm.rememberProject(project)
         crm.setNotice(`Проект «${project.name}» создан в CRM, № ${project.id}.`)
         navigate('/projects')
