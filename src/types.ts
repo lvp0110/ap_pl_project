@@ -79,5 +79,3 @@ export type Catalogs = {
   managersSG: string[]
 }
 
-export type AppView = 'dashboard' | 'projects' | 'catalogs'
-export type ProjectPreset = 'all' | 'incomplete' | 'attention'

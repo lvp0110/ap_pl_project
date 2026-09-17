@@ -1,44 +1,42 @@
-import { useMemo, useState } from 'react'
-import type { Catalogs, Project, ProjectPreset } from '../types'
-import { formatDateParts } from '../lib/format'
-import { isHighProbability, validateBlank } from '../lib/validate'
+import type { CrmFilter, CrmProject } from '../lib/api/projectTypes'
+import {
+  formatAmount,
+  formatDate,
+  formatMoney,
+  formatProjectCount,
+  isIncomplete,
+  referenceName,
+  type ReferenceMap,
+} from '../lib/projects/view'
 
 type Props = {
-  projects: Project[]
-  catalogs: Catalogs
-  preset: ProjectPreset
-  onPresetChange: (preset: ProjectPreset) => void
+  projects: CrmProject[]
+  references: ReferenceMap
+  filters: CrmFilter[]
+  selected: Record<string, string>
+  loadedFromApi: boolean
+  busy: boolean
+  failure: string
+  onFilterChange: (code: string, value: string) => void
+  onReset: () => void
   onCreate: () => void
-  onOpen: (project: Project) => void
+  onRefresh: () => void
 }
 
 export function ProjectsPage({
   projects,
-  catalogs,
-  preset,
-  onPresetChange,
+  references,
+  filters,
+  selected,
+  loadedFromApi,
+  busy,
+  failure,
+  onFilterChange,
+  onReset,
   onCreate,
-  onOpen,
+  onRefresh,
 }: Props) {
-  const [query, setQuery] = useState('')
-  const [stage, setStage] = useState('')
-  const [source, setSource] = useState('')
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return projects.filter((p) => {
-      const issues = validateBlank(p)
-      if (preset === 'incomplete' && issues.length === 0) return false
-      if (preset === 'attention' && !isHighProbability(p)) return false
-      if (stage && p.stage !== stage) return false
-      if (source && p.source !== source) return false
-      if (!q) return true
-      const blob = [p.id, p.name, p.city, p.street, p.managerAG, p.purpose]
-        .join(' ')
-        .toLowerCase()
-      return blob.includes(q)
-    })
-  }, [projects, query, stage, source, preset])
+  const applied = Object.keys(selected).length
 
   return (
     <div className="page">
@@ -47,7 +45,7 @@ export function ProjectsPage({
           <p className="eyebrow">Бланк информирования Ecophon</p>
           <h1>Проекты</h1>
           <p className="lede">
-            Менеджер заполняет бланк: проект, контакты, проделанная работа и материалы. Жёлтые поля — обязательные.
+            Проекты приходят из CRM ConstrTodo. Менеджер заполняет бланк: проект, сроки, объёмы и материалы.
           </p>
         </div>
         <button type="button" className="primary" onClick={onCreate}>
@@ -56,110 +54,96 @@ export function ProjectsPage({
       </header>
 
       <div className="filters">
-        <input
-          className="search"
-          placeholder="Поиск по названию, городу, менеджеру…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select value={stage} onChange={(e) => setStage(e.target.value)}>
-          <option value="">Все стадии</option>
-          {catalogs.stages.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select value={source} onChange={(e) => setSource(e.target.value)}>
-          <option value="">Все источники</option>
-          {catalogs.sources.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <div className="chip-row">
-          <button
-            type="button"
-            className={preset === 'all' ? 'chip active' : 'chip'}
-            onClick={() => onPresetChange('all')}
+        {filters.map((filter) => (
+          <select
+            key={filter.code}
+            value={selected[filter.code] ?? ''}
+            disabled={busy}
+            onChange={(e) => onFilterChange(filter.code, e.target.value)}
           >
-            Все
-          </button>
-          <button
-            type="button"
-            className={preset === 'incomplete' ? 'chip active' : 'chip'}
-            onClick={() => onPresetChange('incomplete')}
-          >
-            Не заполнены
-          </button>
-          <button
-            type="button"
-            className={preset === 'attention' ? 'chip active' : 'chip'}
-            onClick={() => onPresetChange('attention')}
-          >
-            70–90%
+            <option value="">{filter.name}: все</option>
+            {filter.options.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+        ))}
+        <div className="chips">
+          {applied > 0 && (
+            <button type="button" className="chip" onClick={onReset}>
+              Сбросить фильтры ({applied})
+            </button>
+          )}
+          <button type="button" className="chip" disabled={busy || !loadedFromApi} onClick={onRefresh}>
+            Обновить
           </button>
         </div>
       </div>
+
+      {failure && <p className="hint field-invalid">{failure}</p>}
 
       <div className="table-wrap">
         <table className="grid">
           <thead>
             <tr>
-              <th>ID</th>
+              <th>№</th>
               <th>Проект</th>
-              <th>Город</th>
-              <th>Источник</th>
+              <th>Бренд</th>
+              <th>Регион</th>
               <th>Стадия</th>
               <th>%</th>
-              <th>Ответственный АГ</th>
-              <th>Поставка</th>
+              <th>Объём</th>
+              <th>Выручка</th>
+              <th>Обновлён</th>
               <th>Проверка</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {projects.length === 0 ? (
               <tr>
-                <td colSpan={9} className="empty-cell">
-                  {projects.length === 0
-                    ? 'Пока нет заполненных бланков. Нажмите «Заполнить бланк».'
-                    : 'Нет строк по текущим фильтрам.'}
+                <td colSpan={10} className="empty-cell">
+                  {!loadedFromApi
+                    ? 'Войдите в API ConstrTodo, чтобы увидеть проекты.'
+                    : busy
+                      ? 'Загружаем проекты…'
+                      : applied
+                        ? 'Нет проектов по выбранным фильтрам.'
+                        : 'Пока нет проектов. Нажмите «Заполнить бланк».'}
                 </td>
               </tr>
             ) : (
-              filtered.map((p, index) => {
-                const issues = validateBlank(p)
-                return (
-                  <tr key={p.id ? `id-${p.id}` : `row-${index}`} onClick={() => onOpen(p)}>
-                    <td>{p.id || '—'}</td>
-                    <td className="name-cell">{p.name || 'Без названия'}</td>
-                    <td>{p.city || '—'}</td>
-                    <td>{p.source || '—'}</td>
-                    <td>{p.stage ? <span className="badge">{p.stage}</span> : '—'}</td>
-                    <td>{p.probability || '—'}</td>
-                    <td>{p.managerAG || '—'}</td>
-                    <td>{formatDateParts('', p.deliveryMonth, p.deliveryYear)}</td>
-                    <td>
-                      {issues.length === 0 ? (
-                        <span className="prio" data-p="Низкий">
-                          Заполнен
-                        </span>
-                      ) : (
-                        <span className="prio" data-p="Высокий">
-                          Не заполнен
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })
+              projects.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.erp_code || p.id}</td>
+                  <td className="name-cell">{p.name || 'Без названия'}</td>
+                  <td>{p.brand.name}</td>
+                  <td>{referenceName(references, 'region', p.region_id)}</td>
+                  <td>
+                    {p.stage_id ? (
+                      <span className="badge">{referenceName(references, 'project_stage', p.stage_id)}</span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td>{p.sale_probability ? `${p.sale_probability}%` : '—'}</td>
+                  <td>{formatAmount(p.total_area, 'м²')}</td>
+                  <td>{formatMoney(p.potential_revenue)}</td>
+                  <td>{formatDate(p.updated_at)}</td>
+                  <td>
+                    <span className="prio" data-p={isIncomplete(p) ? 'Высокий' : 'Низкий'}>
+                      {isIncomplete(p) ? 'Не заполнен' : 'Заполнен'}
+                    </span>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </div>
       <p className="hint">
-        {filtered.length} из {projects.length} бланков
+        {formatProjectCount(projects.length)}
+        {applied > 0 ? ` · фильтров: ${applied}` : ''}
       </p>
     </div>
   )

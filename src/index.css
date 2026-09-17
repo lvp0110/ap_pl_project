@@ -102,11 +102,12 @@ h3,
   gap: 4px;
 }
 
-.sidebar nav button {
+.sidebar nav a {
   appearance: none;
   border: 0;
   background: transparent;
   color: #efe7dc;
+  text-decoration: none;
   text-align: left;
   padding: 10px 12px;
   display: flex;
@@ -114,8 +115,8 @@ h3,
   align-items: center;
 }
 
-.sidebar nav button:hover,
-.sidebar nav button.active {
+.sidebar nav a:hover,
+.sidebar nav a.active {
   background: var(--sidebar-2);
 }
 
@@ -678,6 +679,124 @@ legend {
   display: flex;
   gap: 6px;
   justify-content: flex-end;
+}
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.project-form-grid .field-span {
+  grid-column: 1 / -1;
+}
+
+.project-form-grid .field-readonly input {
+  background: var(--paper-2, #f3efe9);
+  color: var(--ink-soft);
+}
+
+.project-form-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.autocomplete-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 4px 6px;
+  min-height: 35px;
+}
+
+.autocomplete-control:focus-within {
+  border-color: var(--ink);
+}
+
+.autocomplete-control.disabled {
+  background: var(--paper-2, #f3efe9);
+}
+
+.autocomplete-input {
+  flex: 1;
+  min-width: 80px;
+  border: 0;
+  outline: none;
+  background: none;
+  padding: 4px 2px;
+  font: inherit;
+}
+
+.autocomplete-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: var(--paper-2, #f3efe9);
+  padding: 2px 4px 2px 8px;
+  font-size: 12px;
+}
+
+.autocomplete-tag-remove {
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.autocomplete-tag-remove:hover {
+  color: var(--ink);
+}
+
+.autocomplete-positioner {
+  z-index: 20;
+  width: var(--anchor-width);
+}
+
+.autocomplete-listbox {
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.autocomplete-option {
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.autocomplete-option[data-selected] {
+  background: var(--paper-2, #f3efe9);
+}
+
+.autocomplete-option[data-highlighted] {
+  background: var(--ink);
+  color: #fff;
+}
+
+.autocomplete-empty {
+  padding: 7px 10px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.autocomplete-empty:empty {
+  display: none;
 }
 
 .catalog-add {

@@ -6,7 +6,7 @@ type Props = {
   projects: Project[]
   catalogs: Catalogs
   onOpenProject: (id: string) => void
-  onGoProjects: (preset?: 'incomplete' | 'attention') => void
+  onGoProjects: () => void
 }
 
 export function Dashboard({ projects, catalogs, onOpenProject, onGoProjects }: Props) {
@@ -34,13 +34,13 @@ export function Dashboard({ projects, catalogs, onOpenProject, onGoProjects }: P
           <h2>Что смотреть каждую неделю</h2>
           <ol className="weekly">
             <li>
-              <button type="button" className="linkish" onClick={() => onGoProjects('attention')}>
+              <button type="button" className="linkish" onClick={onGoProjects}>
                 Какие проекты с вероятностью 70–90% требуют личного вмешательства?
               </button>
               <span className="muted">{stats.attention.length} шт.</span>
             </li>
             <li>
-              <button type="button" className="linkish" onClick={() => onGoProjects('incomplete')}>
+              <button type="button" className="linkish" onClick={onGoProjects}>
                 Где бланк ещё не заполнен полностью?
               </button>
               <span className="muted">{stats.incomplete} шт.</span>
