@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { activeReferences } from '../lib/api/crm'
 import {
   API_CATALOG_KEYS,
@@ -21,6 +21,7 @@ type Props = {
   onAddSgManager: (name: string, email: string) => Promise<void>
   onUpdateSgManager: (manager: CrmSgManager, name: string, email: string) => Promise<void>
   onArchiveSgManager: (manager: CrmSgManager) => Promise<void>
+  materials: ReactNode
 }
 
 const API_KEY_SET = new Set<keyof Catalogs>(API_CATALOG_KEYS)
@@ -154,6 +155,7 @@ export function CatalogsPage({
   onAddSgManager,
   onUpdateSgManager,
   onArchiveSgManager,
+  materials,
 }: Props) {
   const [drafts, setDrafts] = useState<Partial<Record<keyof Catalogs, string>>>({})
   const [managerEmail, setManagerEmail] = useState('')
@@ -168,12 +170,11 @@ export function CatalogsPage({
         <div>
           <p className="eyebrow">Лист «Списки»</p>
           <h1>Справочники</h1>
-          <p className="lede">
-            Значения справочников CRM правятся и убираются через API, не в браузере.
-            {!loadedFromApi ? ' Войдите, чтобы их менять.' : ''}
-          </p>
+          {!loadedFromApi && <p className="lede">Войдите в API ConstrTodo, чтобы менять значения.</p>}
         </div>
       </header>
+
+      {materials}
 
       <section className="catalog-grid">
         {GROUPS.map((group) => {

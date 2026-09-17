@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { CatalogsPage as CatalogsView } from '../components/CatalogsPage'
+import { MaterialsPanel } from '../components/MaterialsPanel'
 import { useBlanks, useCrm } from '../app/hooks'
 import { catalogsWithPriceUnits } from '../lib/excel'
 
@@ -24,6 +25,7 @@ export function CatalogsPage() {
       onAddSgManager={crm.addSgManager}
       onUpdateSgManager={crm.renameSgManager}
       onArchiveSgManager={crm.archiveSgManagerValue}
+      materials={<MaterialsPanel loadedFromApi={Boolean(crm.user)} />}
     />
   )
 }

@@ -763,6 +763,43 @@ legend {
   font-size: 11px;
 }
 
+.materials-panel {
+  margin-top: 20px;
+}
+
+.materials-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.materials-brand {
+  min-width: 260px;
+  flex: 0 1 320px;
+}
+
+.materials-panel .grid input {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 6px 8px;
+  font: inherit;
+  min-width: 80px;
+}
+
+.materials-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.materials-actions .ghost {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
 .autocomplete-control {
   display: flex;
   flex-wrap: wrap;
