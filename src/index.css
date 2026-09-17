@@ -780,6 +780,14 @@ legend {
   flex: 0 1 320px;
 }
 
+.materials-panel .table-wrap {
+  max-height: 420px;
+}
+
+.materials-panel .grid tbody tr {
+  cursor: default;
+}
+
 .materials-panel .grid input {
   width: 100%;
   border: 1px solid var(--line);
@@ -787,6 +795,21 @@ legend {
   padding: 6px 8px;
   font: inherit;
   min-width: 80px;
+}
+
+.materials-create {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr 2fr auto;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.materials-create input {
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 8px 10px;
+  font: inherit;
+  min-width: 0;
 }
 
 .materials-actions {

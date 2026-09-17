@@ -31,6 +31,13 @@ export async function listMaterials(brandCode: string, includeArchived = false):
   return Array.isArray(data) ? data : []
 }
 
+export async function createMaterial(draft: MaterialDraft): Promise<CrmMaterial> {
+  return apiRequest<CrmMaterial>('/crm/materials', {
+    method: 'POST',
+    body: JSON.stringify({ ...draft, article: draft.article || null, is_active: true }),
+  })
+}
+
 export async function updateMaterial(id: number, draft: MaterialDraft): Promise<CrmMaterial> {
   return apiRequest<CrmMaterial>(`/crm/materials/${id}`, {
     method: 'PUT',

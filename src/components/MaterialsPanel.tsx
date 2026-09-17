@@ -3,6 +3,7 @@ import { ApiError } from '../lib/api/client'
 import { loadFieldOptions } from '../lib/api/projects'
 import {
   archiveMaterial,
+  createMaterial,
   importMaterials,
   listMaterials,
   updateMaterial,
@@ -10,11 +11,18 @@ import {
 } from '../lib/api/materials'
 import type { CrmOption } from '../lib/api/projectTypes'
 import type { CrmMaterial } from '../lib/api/types'
+import { MaterialCreateForm } from './MaterialCreateForm'
 import { MaterialRow } from './MaterialRow'
 import { OptionCombobox } from './OptionCombobox'
 
 const BRANDS_ENDPOINT = '/crm/project-options/brands'
 const COLUMNS = '«Материал / решение», «Артикул», «Цена», «Единица измерения», «Комментарий»'
+
+function describeWrite(err: unknown, fallback: string): string {
+  const message = err instanceof Error ? err.message : ''
+  if (message.includes('already exists')) return 'Материал с таким названием уже есть у этого бренда.'
+  return message || fallback
+}
 
 function describeImport(err: unknown): string {
   if (!(err instanceof ApiError)) {
@@ -91,6 +99,22 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
     }
   }
 
+  async function add(draft: MaterialDraft) {
+    setBusy(true)
+    setNotice('')
+    setFailure('')
+    try {
+      await createMaterial(draft)
+      setNotice(`Материал «${draft.name}» добавлен.`)
+      await refresh()
+    } catch (err) {
+      setFailure(describeWrite(err, 'Не удалось добавить материал'))
+      throw err
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function save(material: CrmMaterial, draft: MaterialDraft) {
     setBusy(true)
     setNotice('')
@@ -100,7 +124,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
       setNotice(`Материал «${draft.name}» сохранён.`)
       await refresh()
     } catch (err) {
-      setFailure(err instanceof Error ? err.message : 'Не удалось сохранить материал')
+      setFailure(describeWrite(err, 'Не удалось сохранить материал'))
       throw err
     } finally {
       setBusy(false)
@@ -171,8 +195,9 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
       {!brand ? (
         <p className="hint">Выберите бренд, чтобы увидеть его материалы.</p>
       ) : (
-        <div className="table-wrap">
-          <table className="grid">
+        <>
+          <div className="table-wrap">
+            <table className="grid">
             <thead>
               <tr>
                 <th>Артикул</th>
@@ -204,7 +229,9 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+          <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />
+        </>
       )}
     </section>
   )
