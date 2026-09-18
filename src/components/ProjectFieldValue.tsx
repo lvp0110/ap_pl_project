@@ -32,8 +32,9 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
         <table className="grid">
           <thead>
             <tr>
-              <th>Артикул</th>
+              <th>Бренд</th>
               <th>Материал</th>
+              <th>Артикул</th>
               <th>Комментарий</th>
               <th>Кол-во</th>
               <th>Ед.</th>
@@ -44,8 +45,9 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
           <tbody>
             {project.materials.map((line) => (
               <tr key={line.id}>
-                <td>{line.material.article || '—'}</td>
+                <td>{line.material.brand?.name || '—'}</td>
                 <td className="name-cell">{line.material.name}</td>
+                <td>{line.material.article || '—'}</td>
                 <td>{line.material.comment || '—'}</td>
                 <td>{line.quantity}</td>
                 <td>{line.material.unit}</td>
@@ -54,6 +56,12 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={7}>Итого</td>
+              <td>{formatMoney(project.materials.reduce((sum, line) => sum + line.line_amount, 0))}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     )

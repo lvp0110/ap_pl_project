@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { createProject, loadProjectForm, updateProject } from '../lib/api/projects'
-import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
+import type {
+  CrmFormField,
+  CrmProject,
+  CrmProjectAccess,
+  CrmProjectFile,
+  CrmProjectMaterial,
+} from '../lib/api/projectTypes'
 import {
   defaultValues,
   initialValues,
@@ -20,6 +26,8 @@ type Props = {
 
 const SUPPLY_YEAR = 'planned_supply_year'
 const SUPPLY_QUARTER = 'planned_supply_quarter'
+const NO_FILES: CrmProjectFile[] = []
+const NO_MATERIALS: CrmProjectMaterial[] = []
 
 export function ProjectForm({ project, onSaved, onCancel }: Props) {
   const [fields, setFields] = useState<CrmFormField[]>([])
@@ -150,7 +158,8 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
               error={errors[field.code]?.message}
               files={documents}
               onFilesChange={setDocuments}
-              savedFiles={project?.files ?? []}
+              savedFiles={project?.files ?? NO_FILES}
+              savedMaterials={project?.materials ?? NO_MATERIALS}
               removedFiles={removedFiles}
               onRemovedFilesChange={setRemovedFiles}
             />
