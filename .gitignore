@@ -17,6 +17,9 @@ dist-ssr
 .env
 .env.*
 !.env.example
+!deploy/.env.deploy.example
+!deploy/.env.prod.example
+deploy/nginx/*.rendered.conf
 
 # Editor and OS
 .vscode/*

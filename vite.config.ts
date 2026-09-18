@@ -7,9 +7,10 @@ export default defineConfig(({ mode }) => {
     env.UPSTREAM_TARGET ||
     process.env.UPSTREAM_TARGET ||
     'http://localhost:3005'
+  const basePath = env.BASE_PATH || process.env.BASE_PATH || '/ap_pl_project/'
 
   return {
-    base: '/ap_pl_project/',
+    base: basePath,
     plugins: [react()],
     optimizeDeps: {
       include: ['exceljs'],

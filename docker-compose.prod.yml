@@ -1,0 +1,37 @@
+# Прод-стек ap_pl_project на webtest (51.250.51.86), домен crmakyfon.constrtodo.ru.
+#
+#   Интернет :443 → host nginx → 127.0.0.1:3008 → [frontend] → ConstrTodo (UPSTREAM_URL)
+#
+# В стеке один сервис: своего backend у проекта нет, frontend отдаёт статику и
+# проксирует /login, /auth/*, /crm/* в ConstrTodo. Публикуется только на
+# loopback — TLS у хостового nginx.
+#
+# UPSTREAM_URL — в .env.prod рядом с этим файлом (chmod 600, не в git).
+# Запуск:  docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  frontend:
+    build:
+      context: .
+    image: ap_pl_project-frontend:latest
+    container_name: ap_pl_project-frontend
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      NODE_ENV: production
+      PORT: "3009"
+      DIST_DIR: /app/dist
+    ports:
+      # Только loopback: снаружи ходит host nginx. 3000-3007 на машине заняты соседями.
+      - "127.0.0.1:3008:3009"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3009/__front_health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
