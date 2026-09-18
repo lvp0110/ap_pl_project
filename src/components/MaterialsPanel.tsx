@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { listBrands } from '../lib/api/brands'
 import { ApiError } from '../lib/api/client'
-import { loadFieldOptions } from '../lib/api/projects'
 import {
   archiveMaterial,
   createMaterial,
@@ -15,7 +15,6 @@ import { MaterialCreateForm } from './MaterialCreateForm'
 import { MaterialRow } from './MaterialRow'
 import { OptionCombobox } from './OptionCombobox'
 
-const BRANDS_ENDPOINT = '/crm/project-options/brands'
 const COLUMNS = '«Артикул», «Материал», «Стоимость», «Единица измерения», «Комментарий»'
 
 function describeWrite(err: unknown, fallback: string): string {
@@ -46,7 +45,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
   useEffect(() => {
     if (!loadedFromApi) return
     let active = true
-    loadFieldOptions(BRANDS_ENDPOINT)
+    listBrands()
       .then((rows) => {
         if (active) setBrands(rows)
       })

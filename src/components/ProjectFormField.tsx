@@ -98,7 +98,6 @@ export function ProjectFormField({
             <span className="field-label">{field.name}</span>
             <ProjectMaterialsField
               value={asMaterials(controlled.value)}
-              brand={parentValue}
               saved={savedMaterials}
               disabled={busy}
               onChange={controlled.onChange}

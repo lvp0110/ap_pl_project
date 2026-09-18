@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { listBrands } from '../lib/api/brands'
 import { listMaterials } from '../lib/api/materials'
-import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmOption, CrmProjectMaterial, CrmProjectMaterialValue } from '../lib/api/projectTypes'
 import type { CrmMaterial } from '../lib/api/types'
 import { formatMoney } from '../lib/projects/view'
 import { OptionCombobox } from './OptionCombobox'
-
-const BRANDS_ENDPOINT = '/crm/project-options/brands'
 
 type Row = {
   key: string
@@ -17,7 +15,6 @@ type Row = {
 
 type Props = {
   value: CrmProjectMaterialValue[]
-  brand: string
   saved: CrmProjectMaterial[]
   disabled: boolean
   onChange: (value: CrmProjectMaterialValue[]) => void
@@ -42,7 +39,7 @@ function seed(value: CrmProjectMaterialValue[], known: Map<number, CrmMaterial>)
   }))
 }
 
-export function ProjectMaterialsField({ value, brand, saved, disabled, onChange }: Props) {
+export function ProjectMaterialsField({ value, saved, disabled, onChange }: Props) {
   const known = useMemo(
     () => new Map(saved.map((line) => [line.material.id, line.material])),
     [saved],
@@ -56,7 +53,7 @@ export function ProjectMaterialsField({ value, brand, saved, disabled, onChange 
 
   useEffect(() => {
     let active = true
-    loadFieldOptions(BRANDS_ENDPOINT)
+    listBrands()
       .then((options) => {
         if (active) setBrands(options)
       })
@@ -93,7 +90,7 @@ export function ProjectMaterialsField({ value, brand, saved, disabled, onChange 
   }
 
   function add() {
-    setRows([...rows, { key: crypto.randomUUID(), brand, materialId: 0, quantity: 1 }])
+    setRows([...rows, { key: crypto.randomUUID(), brand: '', materialId: 0, quantity: 1 }])
   }
 
   function setBrand(key: string, code: string) {

@@ -1,4 +1,4 @@
-import type { CrmBrand, CrmMaterial } from './types'
+import type { CrmMaterial } from './types'
 
 export type CrmFieldType =
   | 'text'
@@ -65,7 +65,6 @@ export type CrmProjectMaterial = {
 
 export type CrmProject = {
   id: number
-  brand: CrmBrand
   erp_code?: string | null
   information_source_id?: number | null
   information_form_date?: string | null
@@ -83,7 +82,7 @@ export type CrmProject = {
   planned_supply_quarter?: number | null
   sale_probability: number
   priority_id?: number | null
-  brand_support_status_id?: number | null
+  support_status_id?: number | null
   support_date?: string | null
   first_contact_date?: string | null
   planned_shipment_date?: string | null

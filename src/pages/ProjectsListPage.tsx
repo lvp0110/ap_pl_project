@@ -6,7 +6,6 @@ import { listProjects, loadProjectFilters } from '../lib/api/projects'
 import type { CrmFilter, CrmProject } from '../lib/api/projectTypes'
 
 const SERVER_FILTERS = new Set([
-  'brand_code',
   'region_id',
   'stage_id',
   'segment_id',
@@ -15,7 +14,7 @@ const SERVER_FILTERS = new Set([
   'information_source_id',
   'status',
   'priority_id',
-  'brand_support_status_id',
+  'support_status_id',
 ])
 
 type Loaded = {

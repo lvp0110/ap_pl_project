@@ -37,7 +37,8 @@ app.use(
       pathname === '/auth' ||
       pathname.startsWith('/auth/') ||
       pathname === '/crm' ||
-      pathname.startsWith('/crm/'),
+      pathname.startsWith('/crm/') ||
+      pathname.startsWith('/content/references/'),
     on: {
       proxyReq: (proxyReq) => {
         // ConstrTodo сверяет Origin со своим allowlist'ом и отвечает 403 на

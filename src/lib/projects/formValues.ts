@@ -57,7 +57,6 @@ function toCodes(value: ProjectFieldValue | undefined): string[] {
 }
 
 export function readValue(project: CrmProject, field: CrmFormField): ProjectFieldValue {
-  if (field.code === 'brand_code') return project.brand?.code ?? ''
   if (field.type === 'materials') {
     return project.materials.map((line) => ({
       material_id: line.material.id,

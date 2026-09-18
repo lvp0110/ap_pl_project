@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
         '/login': { target: upstreamTarget, changeOrigin: true, secure: false },
         '/auth': { target: upstreamTarget, changeOrigin: true, secure: false },
         '/crm': { target: upstreamTarget, changeOrigin: true, secure: false },
+        '/content': { target: upstreamTarget, changeOrigin: true, secure: false },
       },
     },
   }
