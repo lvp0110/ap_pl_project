@@ -32,7 +32,8 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
   useEffect(() => {
     if (!key || !field.endpoint) return
     let active = true
-    const params = field.depends_on ? { [field.depends_on]: parentValue } : {}
+    const paramKey = field.query?.trim() || field.depends_on
+    const params = paramKey && parentValue ? { [paramKey]: parentValue } : {}
     loadFieldOptions(field.endpoint, params)
       .then((rows) => {
         if (active) setLoaded({ key, options: rows, failed: false })

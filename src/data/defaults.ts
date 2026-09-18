@@ -96,8 +96,8 @@ export const CONTACT_ROWS: Array<{
   label: string
   required?: boolean
 }> = [
-  { key: 'customer', label: 'Заказчик / инвестор' },
-  { key: 'designer', label: 'Проектировщик / архитектор' },
+  { key: 'customer', label: 'Заказчик / Инвестор' },
+  { key: 'designer', label: 'Проектировщик (архитектор)' },
   { key: 'gc', label: 'Генподрядчик' },
   { key: 'sub', label: 'Субподрядчик' },
 ]

@@ -112,4 +112,14 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, retrie
   return body as T
 }
 
+export function asList(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  if (!data || typeof data !== 'object') return []
+  const row = data as Record<string, unknown>
+  for (const key of ['data', 'items', 'values', 'options', 'results']) {
+    if (Array.isArray(row[key])) return row[key] as unknown[]
+  }
+  return []
+}
+
 export const apiBaseIsCrossOrigin = isCrossOrigin

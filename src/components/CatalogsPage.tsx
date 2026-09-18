@@ -34,7 +34,7 @@ const GROUPS: Array<{ key: keyof Catalogs; title: string; hint: string }> = [
   { key: 'regions', title: 'Регион', hint: 'POST /crm/references/region' },
   { key: 'documentationTypes', title: 'Документация', hint: 'POST /crm/references/documentation_type' },
   { key: 'managersSG', title: 'Менеджеры СГ', hint: 'POST /crm/sg-managers — нужны имя и email' },
-  { key: 'managersAG', title: 'Ответственные АГ', hint: 'В API нет отдельного списка менеджеров АГ' },
+  { key: 'managersAG', title: 'Ответственные АГ', hint: 'GET /crm/project-options/employees' },
   { key: 'units', title: 'Ед. измерения', hint: 'Из прайса Excel и CRM-материалов' },
   { key: 'probabilities', title: 'Вероятность поставки', hint: 'Поля бланка, в CRM references нет' },
   { key: 'yesNo', title: 'Да / Нет', hint: 'Поля бланка, в CRM references нет' },

@@ -107,23 +107,35 @@ export function BlankForm({
     <div className="blank-root">
       <button type="button" className="blank-backdrop" aria-label="Закрыть" onClick={onClose} />
       <div className="blank-sheet" ref={sheetRef} role="dialog" aria-labelledby="blank-title">
-        <header className="blank-head">
-          <div>
-            <p className="eyebrow">Saint-Gobain Construction Products RUS · ECOPHON</p>
-            <h2 id="blank-title">Бланк информирования</h2>
-            <p className="lede">
-              Информирование о работе по проекту от компании Акустик Групп. Жёлтые графы заполняет менеджер.
-              Поля со * обязательны.
-            </p>
+        <div className="blank-toolbar">
+          <div className={`check-banner ${complete ? 'ok' : 'bad'}`}>
+            <strong>{complete ? 'БЛАНК ЗАПОЛНЕН ПОЛНОСТЬЮ' : 'БЛАНК НЕ ЗАПОЛНЕН'}</strong>
+            {!complete && <span>{check.messages.join('; ')}</span>}
           </div>
-          <button type="button" className="ghost" onClick={onClose}>
-            К списку
-          </button>
-        </header>
-
-        <div className={`check-banner ${complete ? 'ok' : 'bad'}`}>
-          <strong>{complete ? 'БЛАНК ЗАПОЛНЕН ПОЛНОСТЬЮ' : 'БЛАНК НЕ ЗАПОЛНЕН'}</strong>
-          {!complete && <span>{check.messages.join('; ')}</span>}
+          <div className="price-actions">
+            <input
+              ref={priceRef}
+              type="file"
+              accept=".xlsx,.xls"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) onImportPrice(file)
+              }}
+            />
+            <button type="button" className="ghost" disabled={busy} onClick={() => priceRef.current?.click()}>
+              Загрузить прайс в бланк
+            </button>
+            <button type="button" className="ghost" disabled={busy || !price.length} onClick={onExportPrice}>
+              Выгрузить прайс
+            </button>
+            <span className="hint">
+              {price.length
+                ? `${price.length} позиций. Выберите наименование в таблице материалов.`
+                : 'Нужен Excel прайс-лист (наименование, стоимость, единица).'}
+            </span>
+          </div>
         </div>
 
         <form
@@ -134,159 +146,182 @@ export function BlankForm({
             handleSubmit()
           }}
         >
-          <fieldset>
-            <legend>Служебные отметки</legend>
-            <Field label="№ заявки на резервирование">
-              <input
-                value={project.applicationNumber}
-                onChange={(e) => patch({ applicationNumber: e.target.value })}
-              />
-            </Field>
-            <Field label="Дата составления *" yellow>
-              <DateTriple
-                day={project.composedDay}
-                month={project.composedMonth}
-                year={project.composedYear}
-                catalogs={catalogs}
-                years={catalogs.years}
-                invalidDay={invalid('composedDay')}
-                invalidMonth={invalid('composedMonth')}
-                invalidYear={invalid('composedYear')}
-                onChange={(composedDay, composedMonth, composedYear) =>
-                  patch({ composedDay, composedMonth, composedYear })
-                }
-              />
-            </Field>
-            <Field label="Отметка о резервировании / отказе">
-              <Select
-                value={project.reservationStatus}
-                options={catalogs.reservationStatuses}
-                onChange={(reservationStatus) => patch({ reservationStatus })}
-              />
-            </Field>
-            <Field label="Дата резервирования / отказа">
-              <input
-                value={project.reservationDate}
-                onChange={(e) => patch({ reservationDate: e.target.value })}
-                placeholder="день / месяц / год"
-              />
-            </Field>
-          </fieldset>
-
-          <fieldset>
-            <legend>Информация о проекте</legend>
-            <Field label="Источник информации о проекте *" yellow span invalid={invalid('source')}>
-              <Select
-                value={project.source}
-                options={catalogs.sources}
-                onChange={(source) => patch({ source })}
-              />
-            </Field>
-            <Field label="Название проекта *" yellow span invalid={invalid('name')}>
-              <input
-                value={project.name}
-                onChange={(e) => patch({ name: e.target.value })}
-              />
-            </Field>
-            <Field label="Город / населённый пункт *" yellow invalid={invalid('city')}>
-              <input value={project.city} onChange={(e) => patch({ city: e.target.value })} />
-            </Field>
-            <Field label="Улица *" yellow invalid={invalid('street')}>
-              <input value={project.street} onChange={(e) => patch({ street: e.target.value })} />
-            </Field>
-            <Field label="Дом / земельный участок *" yellow invalid={invalid('house')}>
-              <input value={project.house} onChange={(e) => patch({ house: e.target.value })} />
-            </Field>
-            <Field label="Назначение объекта строительства / помещения *" yellow span invalid={invalid('purpose')}>
-              <Select
-                value={project.purpose}
-                options={catalogs.purposes}
-                onChange={(purpose) => patch({ purpose })}
-              />
-            </Field>
-            <Field label="Стадия проекта *" yellow invalid={invalid('stage')}>
-              <Select
-                value={project.stage}
-                options={catalogs.stages}
-                onChange={(stage) => patch({ stage })}
-              />
-            </Field>
-            <Field label="Вероятность поставки, % *" yellow invalid={invalid('probability')}>
-              <Select
-                value={project.probability}
-                options={catalogs.probabilities}
-                onChange={(probability) => patch({ probability })}
-              />
-            </Field>
-            <Field
-              label="Предполагаемая дата начала поставки *"
-              yellow
-              span
-            >
-              <div className="date-triple">
-                <label className={invalid('deliveryMonth') ? 'control-invalid' : undefined}>
-                  Месяц
-                  <Select
-                    value={project.deliveryMonth}
-                    options={catalogs.months}
-                    onChange={(deliveryMonth) => patch({ deliveryMonth })}
-                  />
-                </label>
-                <label className={invalid('deliveryYear') ? 'control-invalid' : undefined}>
-                  Год
-                  <Select
-                    value={project.deliveryYear}
-                    options={catalogs.deliveryYears}
-                    onChange={(deliveryYear) => patch({ deliveryYear })}
-                  />
-                </label>
+          <div className="bi-sheet">
+            <header className="bi-head">
+              <div className="bi-title">
+                <h2 id="blank-title">Информирование о проекте</h2>
+                <p className="bi-company">_________{PARTNER_COMPANY}______________</p>
+                <p className="bi-caption">название компании / подпись руководителя</p>
               </div>
-            </Field>
-          </fieldset>
-
-          <fieldset className="contacts-set">
-            <legend>Контактные лица — укажите название минимум одного внешнего участника</legend>
-            <div className="blank-table-wrap">
-              <table className="blank-table">
+              <table className="bi-date">
                 <thead>
                   <tr>
-                    <th>Роль</th>
-                    <th>Название организации</th>
-                    <th>ФИО / должность</th>
-                    <th>Контактная информация</th>
+                    <th>Дата составления</th>
+                    <th>Примечание</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Ответственный компании-партнёра *</td>
+                    <td className={`bi-fill${invalid('composedDay') || invalid('composedMonth') || invalid('composedYear') ? ' cell-invalid' : ''}`}>
+                      <DateTriple
+                        day={project.composedDay}
+                        month={project.composedMonth}
+                        year={project.composedYear}
+                        catalogs={catalogs}
+                        years={catalogs.years}
+                        invalidDay={invalid('composedDay')}
+                        invalidMonth={invalid('composedMonth')}
+                        invalidYear={invalid('composedYear')}
+                        onChange={(composedDay, composedMonth, composedYear) =>
+                          patch({ composedDay, composedMonth, composedYear })
+                        }
+                      />
+                    </td>
+                    <td className="bi-fill">
+                      <input
+                        value={project.applicationNumber}
+                        onChange={(e) => patch({ applicationNumber: e.target.value })}
+                        placeholder="№ заявки / отметка"
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </header>
+
+            <section className="bi-block">
+              <h3 className="bi-section">Информация о проекте</h3>
+              <table className="bi-grid">
+                <tbody>
+                  <Row label="Источник информации о проекте" invalid={invalid('source')}>
+                    <Select
+                      value={project.source}
+                      options={catalogs.sources}
+                      onChange={(source) => patch({ source })}
+                    />
+                  </Row>
+                  <Row label="Название проекта" invalid={invalid('name')}>
+                    <input value={project.name} onChange={(e) => patch({ name: e.target.value })} />
+                  </Row>
+                  <Row
+                    label="Адрес объекта строительства"
+                    invalid={invalid('city') || invalid('street') || invalid('house')}
+                  >
+                    <div className="bi-pair">
+                      <input
+                        className={invalid('city') ? 'control-invalid' : undefined}
+                        value={project.city}
+                        onChange={(e) => patch({ city: e.target.value })}
+                        placeholder="город"
+                      />
+                      <input
+                        className={invalid('street') ? 'control-invalid' : undefined}
+                        value={project.street}
+                        onChange={(e) => patch({ street: e.target.value })}
+                        placeholder="улица"
+                      />
+                      <input
+                        className={invalid('house') ? 'control-invalid' : undefined}
+                        value={project.house}
+                        onChange={(e) => patch({ house: e.target.value })}
+                        placeholder="дом"
+                      />
+                    </div>
+                  </Row>
+                  <Row label="Назначение объекта строительства/ помещения" invalid={invalid('purpose')}>
+                    <Select
+                      value={project.purpose}
+                      options={catalogs.purposes}
+                      onChange={(purpose) => patch({ purpose })}
+                    />
+                  </Row>
+                  <Row label="Стадия проекта" invalid={invalid('stage')}>
+                    <Select value={project.stage} options={catalogs.stages} onChange={(stage) => patch({ stage })} />
+                  </Row>
+                  <Row
+                    label="Предполагаемая дата начала поставки материалов"
+                    invalid={invalid('deliveryMonth') || invalid('deliveryYear')}
+                  >
+                    <div className="bi-pair">
+                      <Select
+                        value={project.deliveryMonth}
+                        options={catalogs.months}
+                        onChange={(deliveryMonth) => patch({ deliveryMonth })}
+                      />
+                      <Select
+                        value={project.deliveryYear}
+                        options={catalogs.deliveryYears}
+                        onChange={(deliveryYear) => patch({ deliveryYear })}
+                      />
+                    </div>
+                  </Row>
+                  <Row label="Вероятность поставки материалов  %." invalid={invalid('probability')}>
+                    <Select
+                      value={project.probability}
+                      options={catalogs.probabilities}
+                      onChange={(probability) => patch({ probability })}
+                    />
+                  </Row>
+                  <Row label="Отметка о резервировании / отказе">
+                    <div className="bi-pair">
+                      <Select
+                        value={project.reservationStatus}
+                        options={catalogs.reservationStatuses}
+                        onChange={(reservationStatus) => patch({ reservationStatus })}
+                      />
+                      <input
+                        value={project.reservationDate}
+                        onChange={(e) => patch({ reservationDate: e.target.value })}
+                        placeholder="дата резервирования"
+                      />
+                    </div>
+                  </Row>
+                </tbody>
+              </table>
+            </section>
+
+            <section className="bi-block">
+              <h3 className="bi-section">Контактные лица</h3>
+              <table className="bi-grid bi-contacts">
+                <thead>
+                  <tr>
+                    <th />
+                    <th>ФИО</th>
+                    <th>Контактная информация</th>
+                    <th>Примечание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th>Ответственный со стороны компании-партнера</th>
                     <td>{PARTNER_COMPANY}</td>
-                    <td className={invalid('managerAG') ? 'cell-invalid' : undefined}>
+                    <td className={`bi-fill${invalid('managerAG') ? ' cell-invalid' : ''}`}>
                       <Select
                         value={project.managerAG}
                         options={catalogs.managersAG}
                         onChange={(managerAG) => patch({ managerAG })}
                       />
                     </td>
-                    <td className="muted">Не требуется</td>
+                    <td />
                   </tr>
                   {CONTACT_ROWS.map((row) => {
                     const c = project.contacts[row.key]
                     return (
                       <tr key={row.key}>
-                        <td>{row.label}</td>
-                        <td className={invalid(`contact-${row.key}`) ? 'cell-invalid' : undefined}>
+                        <th>{row.label}</th>
+                        <td className={`bi-fill${invalid(`contact-${row.key}`) ? ' cell-invalid' : ''}`}>
                           <input
                             value={c.organization}
                             onChange={(e) => setContact(row.key, { ...c, organization: e.target.value })}
                           />
                         </td>
-                        <td>
+                        <td className="bi-fill">
                           <input
                             value={c.person}
                             onChange={(e) => setContact(row.key, { ...c, person: e.target.value })}
                           />
                         </td>
-                        <td>
+                        <td className="bi-fill">
                           <input
                             value={c.contact}
                             onChange={(e) => setContact(row.key, { ...c, contact: e.target.value })}
@@ -297,101 +332,70 @@ export function BlankForm({
                   })}
                 </tbody>
               </table>
-            </div>
-          </fieldset>
+            </section>
 
-          <fieldset>
-            <legend>Проделанная работа</legend>
-            <Field
-              label="Дата первого контакта *"
-              yellow
-              span
-            >
-              <DateTriple
-                day={project.firstContactDay}
-                month={project.firstContactMonth}
-                year={project.firstContactYear}
-                catalogs={catalogs}
-                years={catalogs.deliveryYears}
-                invalidDay={invalid('firstContactDay')}
-                invalidMonth={invalid('firstContactMonth')}
-                invalidYear={invalid('firstContactYear')}
-                onChange={(firstContactDay, firstContactMonth, firstContactYear) =>
-                  patch({ firstContactDay, firstContactMonth, firstContactYear })
-                }
-              />
-            </Field>
-            <Field label="Проведение презентации / переговоров *" yellow invalid={invalid('presentation')}>
-              <Select
-                value={project.presentation}
-                options={catalogs.yesNo}
-                onChange={(presentation) => patch({ presentation })}
-              />
-            </Field>
-            <Field label="Вариантное проектирование *" yellow invalid={invalid('variantDesign')}>
-              <Select
-                value={project.variantDesign}
-                options={catalogs.yesNo}
-                onChange={(variantDesign) => patch({ variantDesign })}
-              />
-            </Field>
-            <Field label="Изготовление монтажной схемы *" yellow invalid={invalid('installScheme')}>
-              <Select
-                value={project.installScheme}
-                options={catalogs.yesNo}
-                onChange={(installScheme) => patch({ installScheme })}
-              />
-            </Field>
-            <Field label="Изготовление спецификации *" yellow invalid={invalid('specification')}>
-              <Select
-                value={project.specification}
-                options={catalogs.yesNo}
-                onChange={(specification) => patch({ specification })}
-              />
-            </Field>
-          </fieldset>
+            <section className="bi-block">
+              <h3 className="bi-section">Проделанная работа</h3>
+              <table className="bi-grid">
+                <tbody>
+                  <Row
+                    label="Дата первого контакта с клиентом"
+                    invalid={invalid('firstContactDay') || invalid('firstContactMonth') || invalid('firstContactYear')}
+                  >
+                    <DateTriple
+                      day={project.firstContactDay}
+                      month={project.firstContactMonth}
+                      year={project.firstContactYear}
+                      catalogs={catalogs}
+                      years={catalogs.deliveryYears}
+                      invalidDay={invalid('firstContactDay')}
+                      invalidMonth={invalid('firstContactMonth')}
+                      invalidYear={invalid('firstContactYear')}
+                      onChange={(firstContactDay, firstContactMonth, firstContactYear) =>
+                        patch({ firstContactDay, firstContactMonth, firstContactYear })
+                      }
+                    />
+                  </Row>
+                  <Row label="Проведение презентации, переговоров" invalid={invalid('presentation')}>
+                    <Select
+                      value={project.presentation}
+                      options={catalogs.yesNo}
+                      onChange={(presentation) => patch({ presentation })}
+                    />
+                  </Row>
+                  <Row label="Вариантное проектирование" invalid={invalid('variantDesign')}>
+                    <Select
+                      value={project.variantDesign}
+                      options={catalogs.yesNo}
+                      onChange={(variantDesign) => patch({ variantDesign })}
+                    />
+                  </Row>
+                  <Row label="Изготовление монтажной схемы" invalid={invalid('installScheme')}>
+                    <Select
+                      value={project.installScheme}
+                      options={catalogs.yesNo}
+                      onChange={(installScheme) => patch({ installScheme })}
+                    />
+                  </Row>
+                  <Row label="Изготовление спецификации" invalid={invalid('specification')}>
+                    <Select
+                      value={project.specification}
+                      options={catalogs.yesNo}
+                      onChange={(specification) => patch({ specification })}
+                    />
+                  </Row>
+                </tbody>
+              </table>
+            </section>
 
-          <fieldset className="contacts-set">
-            <legend>
-              Краткая информация о предлагаемых материалах Ecophon — заполните минимум одну строку
-            </legend>
-            <div className="price-actions">
-              <input
-                ref={priceRef}
-                type="file"
-                accept=".xlsx,.xls"
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  e.target.value = ''
-                  if (file) onImportPrice(file)
-                }}
-              />
-              <button
-                type="button"
-                className="ghost"
-                disabled={busy}
-                onClick={() => priceRef.current?.click()}
-              >
-                Загрузить прайс в бланк
-              </button>
-              <button type="button" className="ghost" disabled={busy || !price.length} onClick={onExportPrice}>
-                Выгрузить прайс
-              </button>
-              <span className="hint">
-                {price.length
-                  ? `${price.length} позиций. Выберите артикул или название в таблице.`
-                  : 'Нужен Excel прайс-лист Ecophon (наименование, стоимость, единица).'}
-              </span>
-            </div>
-            <div className="blank-table-wrap">
-              <table className="blank-table">
+            <section className="bi-block">
+              <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
+              <table className="bi-grid bi-materials-table">
                 <thead>
                   <tr>
-                    <th>Артикул</th>
-                    <th>Наименование *</th>
-                    <th>Количество *</th>
-                    <th>Ед. измерения *</th>
+                    <th>Наименование</th>
+                    <th>Ед. измерения</th>
+                    <th>Количество</th>
                     <th>Цвет</th>
                     <th>Примечание</th>
                   </tr>
@@ -399,16 +403,7 @@ export function BlankForm({
                 <tbody>
                   {project.materials.map((line, index) => (
                     <tr key={index}>
-                      <td>
-                        <input
-                          list="price-material-articles"
-                          value={line.article}
-                          onChange={(e) =>
-                            setMaterial(index, { ...line, article: e.target.value }, true)
-                          }
-                        />
-                      </td>
-                      <td className={invalid(`material-${index}-name`) ? 'cell-invalid' : undefined}>
+                      <td className={`bi-fill${invalid(`material-${index}-name`) ? ' cell-invalid' : ''}`}>
                         <input
                           list="price-material-names"
                           value={line.name}
@@ -417,7 +412,14 @@ export function BlankForm({
                           }
                         />
                       </td>
-                      <td className={invalid(`material-${index}-quantity`) ? 'cell-invalid' : undefined}>
+                      <td className={`bi-fill${invalid(`material-${index}-unit`) ? ' cell-invalid' : ''}`}>
+                        <Select
+                          value={line.unit}
+                          options={catalogs.units}
+                          onChange={(unit) => setMaterial(index, { ...line, unit })}
+                        />
+                      </td>
+                      <td className={`bi-fill${invalid(`material-${index}-quantity`) ? ' cell-invalid' : ''}`}>
                         <input
                           type="number"
                           min={0}
@@ -431,20 +433,13 @@ export function BlankForm({
                           }
                         />
                       </td>
-                      <td className={invalid(`material-${index}-unit`) ? 'cell-invalid' : undefined}>
-                        <Select
-                          value={line.unit}
-                          options={catalogs.units}
-                          onChange={(unit) => setMaterial(index, { ...line, unit })}
-                        />
-                      </td>
-                      <td>
+                      <td className="bi-fill">
                         <input
                           value={line.color}
                           onChange={(e) => setMaterial(index, { ...line, color: e.target.value })}
                         />
                       </td>
-                      <td>
+                      <td className="bi-fill">
                         <input
                           value={line.note}
                           onChange={(e) => setMaterial(index, { ...line, note: e.target.value })}
@@ -454,32 +449,20 @@ export function BlankForm({
                   ))}
                 </tbody>
               </table>
-            </div>
-            {price.length > 0 ? (
-              <>
-                <datalist id="price-material-articles">
-                  {price
-                    .filter((item) => item.article)
-                    .map((item) => (
-                      <option
-                        key={`art-${item.id}`}
-                        value={item.article}
-                        label={`${item.name} · ${priceNote(item)}`}
-                      />
-                    ))}
-                </datalist>
-                <datalist id="price-material-names">
-                  {price.map((item) => (
-                    <option
-                      key={`name-${item.id}`}
-                      value={item.name}
-                      label={`${item.article || 'без артикула'} · ${priceNote(item)}`}
-                    />
-                  ))}
-                </datalist>
-              </>
-            ) : null}
-          </fieldset>
+            </section>
+          </div>
+
+          {price.length > 0 ? (
+            <datalist id="price-material-names">
+              {price.map((item) => (
+                <option
+                  key={`name-${item.id}`}
+                  value={item.name}
+                  label={`${item.article || 'без артикула'} · ${priceNote(item)}`}
+                />
+              ))}
+            </datalist>
+          ) : null}
 
           <footer className="blank-foot">
             {!isNew && onDelete ? (
@@ -495,7 +478,7 @@ export function BlankForm({
             )}
             <div className="drawer-actions">
               <button type="button" className="ghost" onClick={onClose}>
-                Отмена
+                К списку
               </button>
               <button type="button" className="ghost" onClick={onSave}>
                 Сохранить черновик
@@ -511,26 +494,20 @@ export function BlankForm({
   )
 }
 
-function Field({
+function Row({
   label,
-  yellow,
-  span,
   invalid,
   children,
 }: {
   label: string
-  yellow?: boolean
-  span?: boolean
   invalid?: boolean
   children: ReactNode
 }) {
   return (
-    <label
-      className={`field${span ? ' field-span' : ''}${yellow ? ' field-yellow' : ''}${invalid ? ' field-invalid' : ''}`}
-    >
-      <span className="field-label">{label}</span>
-      {children}
-    </label>
+    <tr>
+      <th>{label}</th>
+      <td className={`bi-fill${invalid ? ' cell-invalid' : ''}`}>{children}</td>
+    </tr>
   )
 }
 
@@ -546,7 +523,7 @@ function Select({
   const extras = value && !options.includes(value) ? [value] : []
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">—</option>
+      <option value="" />
       {[...extras, ...options.filter(Boolean)].map((opt) => (
         <option key={opt} value={opt}>
           {opt}

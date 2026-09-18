@@ -32,25 +32,25 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
         <table className="grid">
           <thead>
             <tr>
-              <th>Артикул</th>
-              <th>Материал</th>
-              <th>Комментарий</th>
-              <th>Кол-во</th>
-              <th>Ед.</th>
-              <th>Цена</th>
-              <th>Сумма</th>
+              <th>Наименование</th>
+              <th>Ед. измерения</th>
+              <th>Количество</th>
+              <th>Цвет</th>
+              <th>Примечание</th>
             </tr>
           </thead>
           <tbody>
             {project.materials.map((line) => (
               <tr key={line.id}>
-                <td>{line.material.article || '—'}</td>
                 <td className="name-cell">{line.material.name}</td>
-                <td>{line.material.comment || '—'}</td>
-                <td>{line.quantity}</td>
                 <td>{line.material.unit}</td>
-                <td>{formatMoney(line.unit_price)}</td>
-                <td>{formatMoney(line.line_amount)}</td>
+                <td>{line.quantity}</td>
+                <td />
+                <td>
+                  {[line.material.article, line.material.comment, formatMoney(line.unit_price)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </td>
               </tr>
             ))}
           </tbody>

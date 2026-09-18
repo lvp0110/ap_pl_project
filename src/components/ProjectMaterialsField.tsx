@@ -78,13 +78,11 @@ export function ProjectMaterialsField({ value, brand, disabled, onChange }: Prop
           <table className="grid">
             <thead>
               <tr>
-                <th>Артикул</th>
-                <th>Материал</th>
-                <th>Комментарий</th>
-                <th>Кол-во</th>
-                <th>Ед.</th>
-                <th>Цена</th>
-                <th>Сумма</th>
+                <th>Наименование</th>
+                <th>Ед. измерения</th>
+                <th>Количество</th>
+                <th>Цвет</th>
+                <th>Примечание</th>
                 <th />
               </tr>
             </thead>
@@ -93,23 +91,24 @@ export function ProjectMaterialsField({ value, brand, disabled, onChange }: Prop
                 const material = catalog.find((item) => item.id === line.material_id)
                 return (
                   <tr key={line.material_id}>
-                    <td>{material?.article || '—'}</td>
                     <td className="name-cell">{material?.name ?? `Материал № ${line.material_id}`}</td>
-                    <td>{material?.comment || '—'}</td>
-                    <td>
+                    <td>{material?.unit ?? ''}</td>
+                    <td className="bi-fill">
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={line.quantity || ''}
                         disabled={disabled}
-                        placeholder="кол-во"
                         onChange={(e) => setQuantity(line.material_id, Number(e.target.value))}
                       />
                     </td>
-                    <td>{material?.unit ?? '—'}</td>
-                    <td>{material ? formatMoney(material.price) : '—'}</td>
-                    <td>{material ? formatMoney(material.price * line.quantity) : '—'}</td>
+                    <td />
+                    <td>
+                      {[material?.article, material?.comment, material ? formatMoney(material.price) : '']
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </td>
                     <td>
                       <button
                         type="button"

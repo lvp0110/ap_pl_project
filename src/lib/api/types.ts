@@ -18,6 +18,7 @@ export type CrmReferenceType =
   | 'information_source'
   | 'documentation_type'
   | 'region'
+  | 'brand_support_status'
 
 export type CrmReferenceValue = {
   id: number
@@ -25,6 +26,7 @@ export type CrmReferenceValue = {
   name: string
   sort_order: number
   is_active: boolean
+  brand_codes?: string[]
 }
 
 export type CrmBrand = {
@@ -67,6 +69,7 @@ export type CrmCatalogSnapshot = {
   regions: string[]
   documentationTypes: string[]
   managersSG: string[]
+  managersAG: string[]
   units: string[]
 }
 
@@ -77,6 +80,7 @@ export const CRM_REFERENCE_TYPES: CrmReferenceType[] = [
   'priority',
   'documentation_type',
   'region',
+  'brand_support_status',
 ]
 
 export const API_CATALOG_KEYS = [

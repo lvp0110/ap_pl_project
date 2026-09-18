@@ -17,6 +17,7 @@ type Props = {
   savedFiles: CrmProjectFile[]
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
+  embed?: boolean
 }
 
 export function ProjectFormField({
@@ -30,8 +31,10 @@ export function ProjectFormField({
   savedFiles,
   removedFiles,
   onRemovedFilesChange,
+  embed,
 }: Props) {
   if (field.disabled) {
+    if (embed) return <input className="bi-input" value="" readOnly />
     return (
       <label className="field field-readonly">
         <span className="field-label">{field.name}</span>
@@ -41,9 +44,8 @@ export function ProjectFormField({
   }
 
   if (field.type === 'file') {
-    return (
-      <div className="field field-span">
-        <span className="field-label">{field.name}</span>
+    const body = (
+      <>
         {savedFiles.length > 0 && (
           <ul className="saved-files">
             {savedFiles.map((saved) => {
@@ -80,6 +82,13 @@ export function ProjectFormField({
           onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
         />
         {files.length > 0 && <span className="field-hint">{files.map((f) => f.name).join(', ')}</span>}
+      </>
+    )
+    if (embed) return <div className="bi-file">{body}</div>
+    return (
+      <div className="field field-span">
+        <span className="field-label">{field.name}</span>
+        {body}
       </div>
     )
   }
@@ -91,16 +100,23 @@ export function ProjectFormField({
       control={control}
       name={field.code}
       rules={{ required: field.required ? `${field.name}: заполните поле` : false }}
-      render={({ field: controlled }) => (
-        <label className={`field${span ? ' field-span' : ''}${error ? ' field-invalid' : ''}`}>
-          <span className="field-label">
-            {field.name}
-            {field.required && ' *'}
-          </span>
-          {renderControl(field, controlled, parentValue, busy)}
-          {error && <span className="field-hint">{error}</span>}
-        </label>
-      )}
+      render={({ field: controlled }) =>
+        embed ? (
+          <div className={`bi-control${error ? ' field-invalid' : ''}`}>
+            {renderControl(field, controlled, parentValue, busy)}
+            {error && <span className="field-hint">{error}</span>}
+          </div>
+        ) : (
+          <label className={`field${span ? ' field-span' : ''}${error ? ' field-invalid' : ''}`}>
+            <span className="field-label">
+              {field.name}
+              {field.required && ' *'}
+            </span>
+            {renderControl(field, controlled, parentValue, busy)}
+            {error && <span className="field-hint">{error}</span>}
+          </label>
+        )
+      }
     />
   )
 }
@@ -183,7 +199,7 @@ function renderControl(
           onBlur={controlled.onBlur}
           onChange={(e) => controlled.onChange(e.target.value)}
         >
-          <option value="">—</option>
+          <option value="" />
           {QUARTERS.map((quarter) => (
             <option key={quarter} value={quarter}>
               {quarter} квартал

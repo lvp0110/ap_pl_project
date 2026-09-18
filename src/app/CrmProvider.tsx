@@ -37,11 +37,15 @@ export function CrmProvider({
   const [ready, setReady] = useState(false)
 
   const pull = useCallback(async () => {
-    const [loaded, crm] = await Promise.all([loadCrmCatalogs(), listProjects()])
+    const loaded = await loadCrmCatalogs()
     setCatalogs(catalogsFromCrm(loaded.catalogs))
     setReferences(loaded.references)
     setSgManagers(loaded.sgManagers)
-    setProjects(crm)
+    try {
+      setProjects(await listProjects())
+    } catch {
+      setProjects([])
+    }
   }, [])
 
   useEffect(() => {

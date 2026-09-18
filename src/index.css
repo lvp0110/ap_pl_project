@@ -132,6 +132,10 @@ h3,
   flex-direction: column;
 }
 
+.api-notice {
+  margin: 12px 28px 0;
+}
+
 .page {
   padding: 28px;
   display: flex;
@@ -501,8 +505,8 @@ h3,
 
 .blank-sheet {
   position: relative;
-  width: min(1100px, 100%);
-  background: var(--paper-2);
+  width: min(1180px, 100%);
+  background: #e8e8e8;
   border: 1px solid var(--line);
   margin-top: 12px;
 }
@@ -684,6 +688,17 @@ legend {
 .project-form-actions {
   display: flex;
   gap: 8px;
+}
+
+.extra-crm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.extra-crm .project-view {
+  margin: 0;
+  border-top: 1px solid var(--line);
 }
 
 .project-view {
@@ -1102,6 +1117,182 @@ legend {
   line-height: 1.4;
 }
 
+.blank-toolbar {
+  position: relative;
+  z-index: 1;
+  padding: 16px 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blank-toolbar .check-banner {
+  margin: 0;
+}
+
+.bi-page {
+  max-width: 1240px;
+}
+
+.bi-sheet {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  background: #fff;
+  color: #202124;
+  padding: 16px 20px 24px;
+  border: 1px solid #bfbfbf;
+}
+
+.bi-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.bi-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.bi-title h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.bi-company {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 15px;
+}
+
+.bi-caption {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: #444;
+}
+
+.bi-date {
+  width: 290px;
+  flex: 0 0 290px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.bi-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.bi-date th,
+.bi-date td,
+.bi-grid th,
+.bi-grid td {
+  border: 2px double #202124;
+  padding: 5px 8px;
+  vertical-align: middle;
+}
+
+.bi-date th,
+.bi-grid thead th {
+  font-weight: 600;
+  text-align: center;
+  background: #fff;
+}
+
+.bi-grid tbody th {
+  width: 34%;
+  font-weight: 400;
+  text-align: left;
+  background: #fff;
+}
+
+.bi-section {
+  margin: 14px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bi-block + .bi-block .bi-section,
+.bi-block + h3.bi-section {
+  margin-top: 16px;
+}
+
+.bi-fill {
+  background: #fff2cc;
+}
+
+.bi-fill input,
+.bi-fill select,
+.bi-fill textarea,
+.bi-control input,
+.bi-control select,
+.bi-control textarea {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 3px 4px;
+  font: inherit;
+  color: inherit;
+  min-width: 0;
+}
+
+.bi-fill .autocomplete-control,
+.bi-control .autocomplete-control {
+  border: 0;
+  background: transparent;
+  min-height: 28px;
+  padding: 0 2px;
+}
+
+.bi-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+}
+
+.bi-contacts col,
+.bi-contacts th:first-child {
+  width: 26%;
+}
+
+.bi-materials-table th {
+  width: auto;
+}
+
+.bi-materials-table th:nth-child(1) { width: 38%; }
+.bi-materials-table th:nth-child(2) { width: 14%; }
+.bi-materials-table th:nth-child(3) { width: 12%; }
+.bi-materials-table th:nth-child(4) { width: 12%; }
+
+.bi-materials .project-materials .grid {
+  border-collapse: collapse;
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+}
+
+.bi-materials .project-materials .grid th,
+.bi-materials .project-materials .grid td {
+  border: 2px double #202124;
+}
+
+.bi-materials .project-materials .grid tbody td:nth-child(3) {
+  background: #fff2cc;
+}
+
+.cell-invalid,
+.bi-fill.cell-invalid,
+.bi-fill.cell-invalid input,
+.bi-fill.cell-invalid select {
+  background: #f4cccc;
+}
+
 .sidebar-field {
   display: flex;
   flex-direction: column;
@@ -1177,8 +1368,14 @@ legend {
 
   .page-head,
   .blank-head,
-  .blank-foot {
+  .blank-foot,
+  .bi-head {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .bi-date {
+    width: 100%;
+    flex: none;
   }
 }

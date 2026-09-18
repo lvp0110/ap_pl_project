@@ -40,6 +40,7 @@ export function Layout() {
       </aside>
 
       <div className="main">
+        {crm.notice && <p className="hint api-notice">{crm.notice}</p>}
         <Outlet />
       </div>
     </div>

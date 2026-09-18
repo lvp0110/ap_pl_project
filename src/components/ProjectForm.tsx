@@ -10,7 +10,7 @@ import {
   toPayload,
   type ProjectFormValues,
 } from '../lib/projects/formValues'
-import { ProjectFormField } from './ProjectFormField'
+import { ProjectBlankSheet } from './ProjectBlankSheet'
 
 type Props = {
   project?: CrmProject
@@ -125,13 +125,14 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
   }
 
   return (
-    <div className="page">
+    <div className="page bi-page">
       <header className="page-head">
         <div>
-          <p className="eyebrow">CRM ConstrTodo{project ? ` · проект № ${project.id}` : ''}</p>
-          <h1>{project ? project.name || 'Без названия' : 'Новый проект'}</h1>
+          <p className="eyebrow">Бланк информирования{project ? ` · проект № ${project.id}` : ''}</p>
+          <h1>{project ? project.name || 'Без названия' : 'Заполнить бланк'}</h1>
           <p className="lede">
-            Форма приходит с сервера: {fields.length} полей, уровень доступа «{access}».
+            Макет как в документе Word. Поля приходят из CRM ({fields.length}), доступ «{access}» — списки,
+            материалы и сохранение работают как раньше.
           </p>
         </div>
       </header>
@@ -139,30 +140,25 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       {failure && <p className="hint field-invalid">{failure}</p>}
 
       <form className="project-form" onSubmit={handleSubmit(submit)}>
-        <div className="project-form-grid">
-          {fields.map((field) => (
-            <ProjectFormField
-              key={field.code}
-              field={field}
-              control={control}
-              parentValue={field.depends_on ? (selected[field.depends_on] ?? '') : ''}
-              busy={saving}
-              error={errors[field.code]?.message}
-              files={documents}
-              onFilesChange={setDocuments}
-              savedFiles={project?.files ?? []}
-              removedFiles={removedFiles}
-              onRemovedFilesChange={setRemovedFiles}
-            />
-          ))}
-        </div>
+        <ProjectBlankSheet
+          fields={fields}
+          control={control}
+          selected={selected}
+          errors={errors}
+          busy={saving}
+          files={documents}
+          onFilesChange={setDocuments}
+          savedFiles={project?.files ?? []}
+          removedFiles={removedFiles}
+          onRemovedFilesChange={setRemovedFiles}
+        />
 
         <div className="project-form-actions">
           <button type="submit" className="primary" disabled={saving}>
-            {saving ? 'Сохраняем…' : project ? 'Сохранить' : 'Создать проект'}
+            {saving ? 'Сохраняем…' : 'Сохранить бланк'}
           </button>
           <button type="button" className="ghost" disabled={saving} onClick={onCancel}>
-            Отмена
+            К списку
           </button>
         </div>
       </form>

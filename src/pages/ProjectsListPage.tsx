@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
+import { BlankForm } from '../components/BlankForm'
 import { ProjectsPage } from '../components/ProjectsPage'
-import { useCrm } from '../app/hooks'
+import { useBlanks, useCrm } from '../app/hooks'
+import { catalogsWithPriceUnits } from '../lib/excel'
 import { listProjects, loadProjectFilters } from '../lib/api/projects'
 import type { CrmFilter, CrmProject } from '../lib/api/projectTypes'
 
@@ -26,6 +28,7 @@ type Loaded = {
 
 export function ProjectsListPage() {
   const crm = useCrm()
+  const blanks = useBlanks()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [filters, setFilters] = useState<CrmFilter[]>([])
@@ -44,6 +47,10 @@ export function ProjectsListPage() {
   const signed = Boolean(crm.user)
   const requestKey = signed ? `${selectedKey}|${reloadAt}` : ''
   const ready = Boolean(requestKey) && loaded.key === requestKey
+  const catalogs = useMemo(
+    () => catalogsWithPriceUnits(crm.catalogs, blanks.price),
+    [crm.catalogs, blanks.price],
+  )
 
   useEffect(() => {
     if (!requestKey) return
@@ -90,28 +97,50 @@ export function ProjectsListPage() {
   )
 
   return (
-    <ProjectsPage
-      projects={ready ? loaded.rows : []}
-      references={crm.references}
-      filters={signed ? filters : []}
-      selected={selected}
-      loadedFromApi={signed}
-      busy={crm.busy || (signed && !ready)}
-      failure={loaded.failure}
-      onFilterChange={(code, value) => update({ [code]: value })}
-      onReset={() => setParams({})}
-      onCreate={() => {
-        if (!signed) {
-          crm.setNotice('Войдите в API ConstrTodo, чтобы завести проект.')
-          return
-        }
-        navigate('/projects/new')
-      }}
-      onOpen={(project) => navigate(`/projects/${project.id}`)}
-      onRefresh={() => {
-        setReloadAt(Date.now())
-        void crm.reload()
-      }}
-    />
+    <>
+      <ProjectsPage
+        projects={ready ? loaded.rows : []}
+        references={crm.references}
+        filters={signed ? filters : []}
+        selected={selected}
+        loadedFromApi={signed}
+        busy={crm.busy || (signed && !ready)}
+        failure={loaded.failure}
+        onFilterChange={(code, value) => update({ [code]: value })}
+        onReset={() => setParams({})}
+        onCreate={() => {
+          if (!signed) {
+            blanks.openNewBlank()
+            return
+          }
+          navigate('/projects/new')
+        }}
+        onOpen={(project) => navigate(`/projects/${project.id}`)}
+        onRefresh={() => {
+          setReloadAt(Date.now())
+          void crm.reload()
+        }}
+      />
+
+      {blanks.draft && (
+        <BlankForm
+          project={blanks.draft.project}
+          catalogs={catalogs}
+          price={blanks.price}
+          busy={crm.busy}
+          isNew={blanks.draft.isNew}
+          onImportPrice={(file) => {
+            void blanks.importPrice(file).then(crm.setNotice).catch(() => crm.setNotice('Не удалось прочитать прайс Excel'))
+          }}
+          onExportPrice={() => {
+            void blanks.exportPrice().then(crm.setNotice).catch(() => crm.setNotice('Не удалось выгрузить прайс'))
+          }}
+          onChange={blanks.changeDraft}
+          onSave={blanks.saveDraft}
+          onClose={blanks.closeDraft}
+          onDelete={blanks.draft.isNew ? undefined : blanks.deleteDraft}
+        />
+      )}
+    </>
   )
 }
