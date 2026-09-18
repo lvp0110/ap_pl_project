@@ -103,6 +103,8 @@ make deploy-bootstrap
 - **push в `main`** — роллаут, если менялись пути фронта; smoke всегда.
 - **workflow_dispatch** — все шаги принудительно, плюс вход `rev` для отката.
 
+О старте, успехе и падении прилетает уведомление в Telegram.
+
 ### Требуемые GitHub Secrets
 
 `Settings → Secrets and variables → Actions → Repository secrets`:
@@ -115,6 +117,8 @@ make deploy-bootstrap
 | `DEPLOY_CERT_DIR` | `/home/leonidl/certs` |
 | `DEPLOY_SSH_KEY` | приватный ключ `~/.ssh/crmakyfon_deploy` (полный PEM) |
 | `DEPLOY_KNOWN_HOSTS` | `51.250.51.86 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDxXwEwTYlSMhk6S1PEVAjmWI/ZEYfOYKZfqOBoedgXH` |
+| `TELEGRAM_BOT_TOKEN` | токен бота, который шлёт уведомления о деплое |
+| `TELEGRAM_CHAT_ID` | id чата (для группы — с `-100…`) |
 
 Переменная (не секрет), `Settings → Variables`:
 

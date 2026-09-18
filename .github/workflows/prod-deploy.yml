@@ -68,6 +68,22 @@ jobs:
           EOF
           chmod 600 deploy/.env.deploy
 
+      - name: Notify Telegram (start)
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG=$'🚀 <b>Деплой ap_pl_project начат</b>\n'
+          MSG+="<b>Ветка:</b> ${GITHUB_REF_NAME}"$'\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\">Run #${GITHUB_RUN_NUMBER}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null
+
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
@@ -121,3 +137,39 @@ jobs:
 
       - name: Smoke test
         run: bash deploy/deploy-status.sh
+
+      - name: Notify Telegram (success)
+        if: success()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+        run: |
+          MSG=$'✅ <b>Деплой ap_pl_project завершён</b>\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+="<b>Frontend:</b> ${{ steps.decide.outputs.should_frontend == 'true' && 'выкачен' || 'без изменений' }}"$'\n'
+          MSG+="<b>Nginx:</b> ${{ steps.decide.outputs.should_nginx == 'true' && (vars.NGINX_AUTOSYNC == 'true' && 'перечитан' || 'изменён, НУЖНО применить вручную') || 'без изменений' }}"$'\n'
+          MSG+="<a href=\"https://${DEPLOY_DOMAIN}\">https://${DEPLOY_DOMAIN}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null
+
+      - name: Notify Telegram (failure)
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG=$'❌ <b>Деплой ap_pl_project провален</b>\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+=$'Откат: Actions → Prod deploy → Run workflow → rev = &lt;предыдущий SHA&gt;\n'
+          MSG+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\">Логи Run #${GITHUB_RUN_NUMBER}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null
