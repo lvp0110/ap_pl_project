@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Control, FieldErrors } from 'react-hook-form'
 import { PARTNER_COMPANY } from '../data/defaults'
 import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
-import type { CrmFormField, CrmProjectFile } from '../lib/api/projectTypes'
+import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
 import type { ProjectFormValues } from '../lib/projects/formValues'
 import { ProjectFormField } from './ProjectFormField'
 
@@ -15,6 +15,7 @@ type Props = {
   files: File[]
   onFilesChange: (files: File[]) => void
   savedFiles: CrmProjectFile[]
+  savedMaterials: CrmProjectMaterial[]
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
 }
@@ -28,6 +29,7 @@ export function ProjectBlankSheet({
   files,
   onFilesChange,
   savedFiles,
+  savedMaterials,
   removedFiles,
   onRemovedFilesChange,
 }: Props) {
@@ -44,6 +46,7 @@ export function ProjectBlankSheet({
         files={files}
         onFilesChange={onFilesChange}
         savedFiles={savedFiles}
+        savedMaterials={savedMaterials}
         removedFiles={removedFiles}
         onRemovedFilesChange={onRemovedFilesChange}
         embed
@@ -105,6 +108,7 @@ export function ProjectBlankSheet({
                 files={files}
                 onFilesChange={onFilesChange}
                 savedFiles={savedFiles}
+                savedMaterials={savedMaterials}
                 removedFiles={removedFiles}
                 onRemovedFilesChange={onRemovedFilesChange}
               />

@@ -135,7 +135,14 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
           <table className="grid">
             <thead>
               <tr>
-
+                <th>Бренд</th>
+                <th>Материал</th>
+                <th>Артикул</th>
+                <th>Комментарий</th>
+                <th>Кол-во</th>
+                <th>Ед.</th>
+                <th>Цена</th>
+                <th>Сумма</th>
                 <th />
               </tr>
             </thead>
@@ -144,7 +151,28 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
                 const material = materialOf(row)
                 const options = optionsOf(row)
                 return (
-
+                  <tr key={row.key}>
+                    <td className="cell-brand">
+                      <OptionCombobox
+                        options={brands}
+                        value={row.brand}
+                        disabled={disabled}
+                        placeholder={brands.length ? 'бренд' : 'загрузка…'}
+                        onChange={(code) => setBrand(row.key, code)}
+                      />
+                    </td>
+                    <td className="cell-material">
+                      <OptionCombobox
+                        options={options}
+                        value={row.materialId ? String(row.materialId) : ''}
+                        disabled={disabled || !row.brand}
+                        placeholder={materialHint(row.brand, catalog[row.brand], options.length)}
+                        onChange={(code) => setMaterial(row.key, code)}
+                      />
+                    </td>
+                    <td>{material?.article || '—'}</td>
+                    <td>{material?.comment || '—'}</td>
+                    <td>
                       <input
                         className="quantity"
                         type="number"
@@ -152,7 +180,13 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
                         step="0.01"
                         value={row.quantity || ''}
                         disabled={disabled}
-
+                        placeholder="кол-во"
+                        onChange={(e) => setQuantity(row.key, Number(e.target.value))}
+                      />
+                    </td>
+                    <td>{material?.unit ?? '—'}</td>
+                    <td>{material ? formatMoney(material.price) : '—'}</td>
+                    <td>{material ? formatMoney(material.price * row.quantity) : '—'}</td>
                     <td>
                       <button
                         type="button"

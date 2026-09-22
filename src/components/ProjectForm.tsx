@@ -148,7 +148,19 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       {failure && <p className="hint field-invalid">{failure}</p>}
 
       <form className="project-form" onSubmit={handleSubmit(submit)}>
-
+        <ProjectBlankSheet
+          fields={fields}
+          control={control}
+          selected={selected}
+          errors={errors}
+          busy={saving}
+          files={documents}
+          onFilesChange={setDocuments}
+          savedFiles={project?.files ?? NO_FILES}
+          savedMaterials={project?.materials ?? NO_MATERIALS}
+          removedFiles={removedFiles}
+          onRemovedFilesChange={setRemovedFiles}
+        />
 
         <div className="project-form-actions">
           <button type="submit" className="primary" disabled={saving}>
