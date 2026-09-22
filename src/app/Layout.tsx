@@ -1,11 +1,9 @@
 import { NavLink, Outlet } from 'react-router'
 import { ApiPanel } from '../components/ApiPanel'
-import { LocalPanel } from '../components/LocalPanel'
-import { useBlanks, useCrm } from './hooks'
+import { useCrm } from './hooks'
 
 export function Layout() {
   const crm = useCrm()
-  const blanks = useBlanks()
 
   return (
     <div className="app">
@@ -36,7 +34,6 @@ export function Layout() {
           onLogout={() => crm.signOut()}
           onReload={() => crm.reload()}
         />
-        <LocalPanel operator={blanks.operator} onOperatorChange={blanks.setOperator} />
       </aside>
 
       <div className="main">

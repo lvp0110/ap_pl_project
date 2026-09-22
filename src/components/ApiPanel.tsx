@@ -23,11 +23,7 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
       <h3>API ConstrTodo</h3>
       {user ? (
         <>
-          <p>
-            Сессия: {user.email}
-            {user.role_type ? ` · ${user.role_type}` : ''}
-          </p>
-          <p>Справочники — из API. Прайс материалов — из Excel. Бланки пока в этом браузере.</p>
+          <p>{user.email}</p>
           <div className="sidebar-actions">
             <button type="button" className="ghost" disabled={busy} onClick={() => void onReload()}>
               Обновить из API

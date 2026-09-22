@@ -39,10 +39,6 @@ const GROUPS: Array<{ key: keyof Catalogs; title: string; hint: string }> = [
   { key: 'probabilities', title: 'Вероятность поставки', hint: 'Поля бланка, в CRM references нет' },
   { key: 'yesNo', title: 'Да / Нет', hint: 'Поля бланка, в CRM references нет' },
   { key: 'reservationStatuses', title: 'Резервирование', hint: 'Поля бланка, в CRM references нет' },
-  { key: 'months', title: 'Месяц', hint: 'Дата составления и поставки' },
-  { key: 'years', title: 'Год составления', hint: '2020–2035' },
-  { key: 'deliveryYears', title: 'Год поставки / контакта', hint: '2020–2030' },
-  { key: 'days', title: 'День', hint: '1–31' },
 ]
 
 function ReferenceRow({
