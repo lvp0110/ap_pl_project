@@ -8,11 +8,14 @@
     "build": "tsc -b && vite build",
     "pages": "npm run build && rm -rf docs && cp -R dist docs && cp dist/index.html docs/404.html && touch docs/.nojekyll",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-rc.0",
     "exceljs": "^4.4.0",
+    "express": "^4.22.2",
+    "http-proxy-middleware": "^3.0.7",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.88.0",

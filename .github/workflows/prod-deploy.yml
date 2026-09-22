@@ -1,0 +1,175 @@
+name: Prod deploy
+
+# Прод: Docker Compose на webtest (51.250.51.86) → https://crmakyfon.constrtodo.ru
+#
+# CI ssh-ится на прод и дёргает те же deploy/*.sh, что и make deploy-* локально.
+# Node в runner'е не нужен: vite и tsc собираются внутри образа на сервере.
+#
+# Первый запуск (clone + первый up) делается один раз вручную:
+#   make deploy-bootstrap
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rev:
+        description: "Ревизия для деплоя (по умолчанию origin/main)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_REV_OVERRIDE: ${{ github.event.inputs.rev }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Write deploy/.env.deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+          DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+          DEPLOY_CERT_DIR: ${{ secrets.DEPLOY_CERT_DIR }}
+        run: |
+          REV="${DEPLOY_REV_OVERRIDE:-origin/main}"
+          cat > deploy/.env.deploy <<EOF
+          DEPLOY_HOST=$DEPLOY_HOST
+          DEPLOY_DIR=$DEPLOY_DIR
+          DEPLOY_DOMAIN=$DEPLOY_DOMAIN
+          DEPLOY_CERT_DIR=$DEPLOY_CERT_DIR
+          DEPLOY_REMOTE=origin
+          DEPLOY_REV=$REV
+          EOF
+          chmod 600 deploy/.env.deploy
+
+      - name: Notify Telegram (start)
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG=$'🚀 <b>Деплой ap_pl_project начат</b>\n'
+          MSG+="<b>Ветка:</b> ${GITHUB_REF_NAME}"$'\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\">Run #${GITHUB_RUN_NUMBER}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'src/**'
+              - 'public/**'
+              - 'index.html'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'vite.config.ts'
+              - 'tsconfig*.json'
+              - 'server.js'
+              - 'Dockerfile'
+              - 'docker-compose.prod.yml'
+            nginx:
+              - 'deploy/nginx/**'
+
+      - name: Decide what to deploy
+        id: decide
+        env:
+          FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
+          NGINX_CHANGED: ${{ steps.filter.outputs.nginx }}
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should_frontend=true" >> "$GITHUB_OUTPUT"
+            echo "should_nginx=true"    >> "$GITHUB_OUTPUT"
+          else
+            echo "should_frontend=$FRONTEND_CHANGED" >> "$GITHUB_OUTPUT"
+            echo "should_nginx=$NGINX_CHANGED"       >> "$GITHUB_OUTPUT"
+          fi
+
+      # nginx-синк требует NOPASSWD-sudo на сервере. На webtest его нет,
+      # поэтому шаг включается переменной репозитория NGINX_AUTOSYNC=true.
+      - name: Sync + reload nginx
+        if: steps.decide.outputs.should_nginx == 'true' && vars.NGINX_AUTOSYNC == 'true'
+        run: |
+          bash deploy/deploy-nginx-sync.sh
+          bash deploy/deploy-nginx-reload.sh
+
+      - name: Warn — nginx changed but autosync is off
+        if: steps.decide.outputs.should_nginx == 'true' && vars.NGINX_AUTOSYNC != 'true'
+        run: |
+          echo "::warning::deploy/nginx/** изменился, но NGINX_AUTOSYNC != true — конфиг НЕ применён."
+          echo "Примените вручную: make deploy-nginx-sync && make deploy-nginx-reload"
+
+      - name: Rollout frontend
+        if: steps.decide.outputs.should_frontend == 'true'
+        run: bash deploy/deploy-frontend.sh
+
+      - name: Smoke test
+        run: bash deploy/deploy-status.sh
+
+      - name: Notify Telegram (success)
+        if: success()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+        run: |
+          MSG=$'✅ <b>Деплой ap_pl_project завершён</b>\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+="<b>Frontend:</b> ${{ steps.decide.outputs.should_frontend == 'true' && 'выкачен' || 'без изменений' }}"$'\n'
+          MSG+="<b>Nginx:</b> ${{ steps.decide.outputs.should_nginx == 'true' && (vars.NGINX_AUTOSYNC == 'true' && 'перечитан' || 'изменён, НУЖНО применить вручную') || 'без изменений' }}"$'\n'
+          MSG+="<a href=\"https://${DEPLOY_DOMAIN}\">https://${DEPLOY_DOMAIN}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null
+
+      - name: Notify Telegram (failure)
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MSG=$'❌ <b>Деплой ap_pl_project провален</b>\n'
+          MSG+="<b>Коммит:</b> <code>${GITHUB_SHA:0:7}</code>"$'\n'
+          MSG+="<b>Автор:</b> ${GITHUB_ACTOR}"$'\n'
+          MSG+=$'Откат: Actions → Prod deploy → Run workflow → rev = &lt;предыдущий SHA&gt;\n'
+          MSG+="<a href=\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\">Логи Run #${GITHUB_RUN_NUMBER}</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode=HTML \
+            -d disable_web_page_preview=true \
+            --data-urlencode text="$MSG" > /dev/null

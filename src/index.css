@@ -826,7 +826,7 @@ legend {
   cursor: default;
 }
 
-.project-materials .grid input {
+.project-materials .grid input.quantity {
   width: 90px;
   border: 1px solid var(--line);
   background: #fff;
@@ -837,6 +837,35 @@ legend {
 .project-materials .grid .ghost {
   padding: 4px 8px;
   font-size: 11px;
+}
+
+.project-materials .grid td {
+  vertical-align: middle;
+}
+
+.project-materials .grid .cell-brand {
+  min-width: 180px;
+}
+
+.project-materials .grid .cell-material {
+  min-width: 260px;
+}
+
+.project-materials .grid .autocomplete-control {
+  min-height: 31px;
+  padding: 2px 6px;
+}
+
+.project-materials-actions {
+  display: flex;
+}
+
+.grid tfoot td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .project-view .table-wrap {

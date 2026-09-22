@@ -1,5 +1,5 @@
 import { Controller, type Control } from 'react-hook-form'
-import type { CrmFormField, CrmProjectFile } from '../lib/api/projectTypes'
+import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
 import { asMaterials, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
@@ -15,6 +15,7 @@ type Props = {
   files: File[]
   onFilesChange: (files: File[]) => void
   savedFiles: CrmProjectFile[]
+  savedMaterials: CrmProjectMaterial[]
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
   embed?: boolean
@@ -29,6 +30,7 @@ export function ProjectFormField({
   files,
   onFilesChange,
   savedFiles,
+  savedMaterials,
   removedFiles,
   onRemovedFilesChange,
   embed,
@@ -95,6 +97,26 @@ export function ProjectFormField({
 
   const span = field.type === 'text_area' || field.type === 'multiple_list' || field.type === 'materials'
 
+  if (field.type === 'materials') {
+    return (
+      <Controller
+        control={control}
+        name={field.code}
+        render={({ field: controlled }) => (
+          <div className="field field-span">
+            <span className="field-label">{field.name}</span>
+            <ProjectMaterialsField
+              value={asMaterials(controlled.value)}
+              saved={savedMaterials}
+              disabled={busy}
+              onChange={controlled.onChange}
+            />
+          </div>
+        )}
+      />
+    )
+  }
+
   return (
     <Controller
       control={control}
@@ -141,15 +163,6 @@ function renderControl(
   const text = typeof controlled.value === 'string' ? controlled.value : ''
 
   switch (field.type) {
-    case 'materials':
-      return (
-        <ProjectMaterialsField
-          value={asMaterials(controlled.value)}
-          brand={parentValue}
-          disabled={busy}
-          onChange={controlled.onChange}
-        />
-      )
     case 'list':
     case 'multiple_list':
       return (

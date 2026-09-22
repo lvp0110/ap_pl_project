@@ -31,7 +31,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
           <p className="eyebrow">Бланк информирования · проект № {project.id}</p>
           <h1>{project.name || 'Без названия'}</h1>
           <p className="lede">
-            {project.brand.name} · обновлён {formatDate(project.updated_at)}
+            Обновлён {formatDate(project.updated_at)}
             {access ? ` · доступ «${access}»` : ''}
           </p>
         </div>

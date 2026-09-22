@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { createProject, loadProjectForm, updateProject } from '../lib/api/projects'
-import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
+import type {
+  CrmFormField,
+  CrmProject,
+  CrmProjectAccess,
+  CrmProjectFile,
+  CrmProjectMaterial,
+} from '../lib/api/projectTypes'
 import {
   defaultValues,
   initialValues,
@@ -20,6 +26,8 @@ type Props = {
 
 const SUPPLY_YEAR = 'planned_supply_year'
 const SUPPLY_QUARTER = 'planned_supply_quarter'
+const NO_FILES: CrmProjectFile[] = []
+const NO_MATERIALS: CrmProjectMaterial[] = []
 
 export function ProjectForm({ project, onSaved, onCancel }: Props) {
   const [fields, setFields] = useState<CrmFormField[]>([])
@@ -140,18 +148,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       {failure && <p className="hint field-invalid">{failure}</p>}
 
       <form className="project-form" onSubmit={handleSubmit(submit)}>
-        <ProjectBlankSheet
-          fields={fields}
-          control={control}
-          selected={selected}
-          errors={errors}
-          busy={saving}
-          files={documents}
-          onFilesChange={setDocuments}
-          savedFiles={project?.files ?? []}
-          removedFiles={removedFiles}
-          onRemovedFilesChange={setRemovedFiles}
-        />
+
 
         <div className="project-form-actions">
           <button type="submit" className="primary" disabled={saving}>

@@ -91,7 +91,6 @@ export function ProjectsPage({
             <tr>
               <th>№</th>
               <th>Проект</th>
-              <th>Бренд</th>
               <th>Регион</th>
               <th>Стадия</th>
               <th>%</th>
@@ -104,7 +103,7 @@ export function ProjectsPage({
           <tbody>
             {projects.length === 0 ? (
               <tr>
-                <td colSpan={10} className="empty-cell">
+                <td colSpan={9} className="empty-cell">
                   {!loadedFromApi
                     ? 'Войдите в API ConstrTodo, чтобы увидеть проекты.'
                     : busy
@@ -119,7 +118,6 @@ export function ProjectsPage({
                 <tr key={p.id} onClick={() => onOpen(p)}>
                   <td>{p.erp_code || p.id}</td>
                   <td className="name-cell">{p.name || 'Без названия'}</td>
-                  <td>{p.brand.name}</td>
                   <td>{referenceName(references, 'region', p.region_id)}</td>
                   <td>
                     {p.stage_id ? (
