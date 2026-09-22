@@ -22,7 +22,7 @@ type Props = {
   notesKey?: number | string
 }
 
-const EMPTY_ROWS = 8
+const EMPTY_ROWS = 1
 
 function signature(lines: CrmProjectMaterialValue[]): string {
   return lines.map((line) => `${line.material_id}:${line.quantity}`).join('|')

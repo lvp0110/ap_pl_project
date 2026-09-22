@@ -87,6 +87,7 @@ export function ProjectFormField({
         )}
         <input
           type="file"
+          className="file-input"
           multiple
           accept={field.accept && field.accept !== '*/*' ? field.accept : undefined}
           disabled={busy}
@@ -97,7 +98,7 @@ export function ProjectFormField({
     )
     if (embed) return <div className="bi-file">{body}</div>
     return (
-      <div className="field field-span">
+      <div className="field field-span field-file">
         <span className="field-label">{field.name}</span>
         {body}
       </div>

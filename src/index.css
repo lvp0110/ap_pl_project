@@ -431,6 +431,9 @@ h3,
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 8px;
   align-items: stretch;
+  padding: 10px 0;
+  border-top: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
 }
 
 .filter-field {
@@ -458,10 +461,13 @@ h3,
 .filter-name {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 5px 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: #ebe4d8;
+  text-align: center;
 }
 
 .col-toggle {
@@ -921,6 +927,21 @@ legend {
   gap: 12px;
 }
 
+.extra-crm .autocomplete-control input {
+  border: 0;
+  padding: 4px 2px;
+}
+
+.field-file .file-input,
+.bi-file .file-input {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .extra-crm .project-view {
   margin: 0;
   border-top: 1px solid var(--line);
@@ -1333,7 +1354,7 @@ legend {
 
 .bi-date th,
 .bi-date td {
-  border: 1px solid #202124;
+  border: 1px dotted #7f7f7f;
   padding: 8px 10px;
   vertical-align: middle;
 }
