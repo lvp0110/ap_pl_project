@@ -491,13 +491,15 @@ h3,
 .filter-name {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 5px 8px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   background: #ebe4d8;
-  text-align: center;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .col-toggle {
