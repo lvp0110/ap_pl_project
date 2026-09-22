@@ -62,19 +62,26 @@ h3,
 }
 
 .sidebar {
-  background: var(--sidebar);
-  color: #efe7dc;
+  background:
+    radial-gradient(120% 42% at 0% 0%, rgba(255, 214, 48, 0.14), transparent 58%),
+    radial-gradient(90% 55% at 100% 100%, rgba(255, 180, 40, 0.12), transparent 52%),
+    #07080f;
+  color: #fff6d8;
   padding: 28px 18px;
   display: flex;
   flex-direction: column;
   gap: 28px;
   overflow: hidden;
+  font-family: Montserrat, var(--ui);
+  border-right: 1px solid rgba(255, 227, 77, 0.4);
+  box-shadow: inset -14px 0 32px rgba(255, 227, 77, 0.08);
 }
 
 .brand {
   display: flex;
   gap: 12px;
   align-items: center;
+  font-family: var(--ui);
 }
 
 .mark {
@@ -82,21 +89,37 @@ h3,
   height: 40px;
   display: grid;
   place-items: center;
-  background: var(--accent);
-  color: #fff;
+  background: #05060c;
+  color: #ffe34d;
+  border: 1px solid #ffe34d;
   font-family: var(--sans);
   font-weight: 700;
   letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(255, 227, 77, 0.95);
+  box-shadow:
+    0 0 8px rgba(255, 227, 77, 0.75),
+    0 0 18px rgba(255, 227, 77, 0.35),
+    inset 0 0 10px rgba(255, 227, 77, 0.28);
 }
 
 .brand strong,
-.brand span {
+.brand span:not(.mark) {
   display: block;
 }
 
+.brand strong {
+  color: #fffdf2;
+  text-shadow: 0 0 10px rgba(255, 227, 77, 0.5);
+}
+
 .brand span {
-  color: #c4b8aa;
+  color: #ffe9a3;
   font-size: 13px;
+  text-shadow: 0 0 6px rgba(255, 233, 163, 0.45);
+}
+
+.brand .mark {
+  color: #ffe34d;
 }
 
 .sidebar nav {
@@ -107,9 +130,9 @@ h3,
 
 .sidebar nav a {
   appearance: none;
-  border: 0;
+  border: 1px solid transparent;
   background: transparent;
-  color: #efe7dc;
+  color: #fff1c2;
   text-decoration: none;
   text-align: left;
   padding: 10px 12px;
@@ -120,13 +143,20 @@ h3,
 
 .sidebar nav a:hover,
 .sidebar nav a.active {
-  background: var(--sidebar-2);
+  background: rgba(255, 214, 48, 0.08);
+  border-color: rgba(255, 227, 77, 0.55);
+  color: #fffce6;
+  text-shadow: 0 0 8px rgba(255, 227, 77, 0.8);
+  box-shadow:
+    0 0 10px rgba(255, 227, 77, 0.35),
+    inset 0 0 12px rgba(255, 227, 77, 0.12);
 }
 
 .sidebar nav em {
   font-style: normal;
-  color: #c4b8aa;
+  color: #ffc44a;
   font-size: 12px;
+  text-shadow: 0 0 8px rgba(255, 196, 74, 0.9);
 }
 
 .main {
@@ -1257,20 +1287,23 @@ legend {
 
 .sidebar-panel {
   padding-top: 16px;
-  border-top: 1px solid #3a332e;
+  border-top: 1px solid rgba(255, 227, 77, 0.4);
+  box-shadow: 0 -10px 18px rgba(255, 227, 77, 0.08);
   display: flex;
   flex-direction: column;
   gap: 8px;
   font-size: 12px;
-  color: #c4b8aa;
+  color: #ffe9b0;
 }
 
 .sidebar-panel h3 {
   margin: 0;
+  font-family: inherit;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #efe7dc;
+  color: #ffc44a;
+  text-shadow: 0 0 8px rgba(255, 196, 74, 0.75);
 }
 
 .sidebar-panel p {
@@ -1536,10 +1569,19 @@ legend {
 }
 
 .sidebar-field input {
-  border: 1px solid #4a433c;
-  background: #1a1614;
-  color: #efe7dc;
+  border: 1px solid rgba(255, 227, 77, 0.45);
+  background: #05060c;
+  color: #fffce6;
   padding: 6px 8px;
+  box-shadow: inset 0 0 8px rgba(255, 227, 77, 0.12);
+}
+
+.sidebar-field input:focus {
+  outline: none;
+  border-color: #ffe34d;
+  box-shadow:
+    0 0 8px rgba(255, 227, 77, 0.55),
+    inset 0 0 8px rgba(255, 227, 77, 0.2);
 }
 
 .sidebar-actions {
@@ -1556,12 +1598,28 @@ legend {
 }
 
 .sidebar-panel .ghost {
-  color: #efe7dc;
-  border-color: #4a433c;
+  color: #ffe34d;
+  border-color: rgba(255, 227, 77, 0.65);
+  background: transparent;
+  text-shadow: 0 0 6px rgba(255, 227, 77, 0.55);
 }
 
 .sidebar-panel .ghost:hover {
-  background: var(--sidebar-2);
+  background: rgba(255, 227, 77, 0.1);
+  box-shadow: 0 0 12px rgba(255, 227, 77, 0.4);
+}
+
+.sidebar-panel .primary {
+  background: transparent;
+  color: #ffc44a;
+  border-color: rgba(255, 196, 74, 0.8);
+  text-shadow: 0 0 6px rgba(255, 196, 74, 0.65);
+  box-shadow: 0 0 10px rgba(255, 196, 74, 0.28);
+}
+
+.sidebar-panel .primary:hover {
+  background: rgba(255, 196, 74, 0.12);
+  box-shadow: 0 0 14px rgba(255, 196, 74, 0.5);
 }
 
 @media (max-width: 960px) {
@@ -1576,6 +1634,9 @@ legend {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 227, 77, 0.4);
+    box-shadow: inset 0 -14px 32px rgba(255, 227, 77, 0.08);
   }
 
   .sidebar nav {
