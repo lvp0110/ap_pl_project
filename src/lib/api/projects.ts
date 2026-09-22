@@ -1,5 +1,12 @@
 import { apiRequest, asList } from './client'
-import type { CrmFilter, CrmOption, CrmProject, CrmProjectForm, CrmProjectValues } from './projectTypes'
+import {
+  PROJECT_STATUS_DRAFT,
+  type CrmFilter,
+  type CrmOption,
+  type CrmProject,
+  type CrmProjectForm,
+  type CrmProjectValues,
+} from './projectTypes'
 import type { CrmReferenceValue, CrmSgManager } from './types'
 
 export async function loadProjectForm(params: Record<string, string> = {}): Promise<CrmProjectForm> {
@@ -29,6 +36,19 @@ export async function loadProjectFilters(): Promise<CrmFilter[]> {
   return asList(data).filter((row): row is CrmFilter => Boolean(row) && typeof row === 'object' && Array.isArray((row as CrmFilter).options) && (row as CrmFilter).options.length > 0)
 }
 
+export async function draftStatusCode(): Promise<string> {
+  try {
+    const status = (await loadProjectFilters()).find((filter) => filter.code === 'status')
+    const match = status?.options.find(
+      (option) => option.code.toLowerCase() === PROJECT_STATUS_DRAFT || /черновик/i.test(option.name),
+    )
+    if (match) return match.code
+  } catch {
+    /* фильтры недоступны — оставляем swagger/ContentStatus */
+  }
+  return PROJECT_STATUS_DRAFT
+}
+
 export async function listProjects(params: Record<string, string> = {}): Promise<CrmProject[]> {
   const query = new URLSearchParams(params).toString()
   const data = await apiRequest<unknown>(`/crm/projects${query ? `?${query}` : ''}`)
@@ -55,14 +75,6 @@ export async function updateProject(
     method: 'PUT',
     ...payload(values, files),
   })
-}
-
-export async function archiveProject(id: number): Promise<void> {
-  await apiRequest(`/crm/projects/${id}/archive`, { method: 'POST' })
-}
-
-export async function unarchiveProject(id: number): Promise<void> {
-  await apiRequest(`/crm/projects/${id}/unarchive`, { method: 'POST' })
 }
 
 function payload(values: CrmProjectValues, files: File[]): RequestInit {

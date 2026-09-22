@@ -74,17 +74,17 @@ export function BlankForm({
 
   function setMaterial(index: number, next: MaterialLine, fromCatalog = false) {
     let line = next
-    if (fromCatalog) {
-      const hit = matchPriceItem(price, next.article, next.name)
-      if (hit) {
-        line = {
-          ...next,
-          article: hit.article || next.article,
-          name: hit.name || next.name,
-          unit: hit.qtyUnit || next.unit,
-          note: next.note || priceNote(hit),
-        }
+    const hit = matchPriceItem(price, next.article, next.name)
+    if (hit) {
+      line = {
+        ...next,
+        article: hit.article || next.article,
+        name: hit.name || next.name,
+        unit: hit.qtyUnit,
+        note: next.note || priceNote(hit),
       }
+    } else if (fromCatalog) {
+      line = { ...next, unit: '' }
     }
     const rows = project.materials.map((current, i) => (i === index ? line : current))
     patch({ materials: rows })
@@ -150,7 +150,7 @@ export function BlankForm({
             <header className="bi-head">
               <div className="bi-title">
                 <h2 id="blank-title">Информирование о проекте</h2>
-                <p className="bi-company">_________{PARTNER_COMPANY}______________</p>
+                <p className="bi-company">{PARTNER_COMPANY}</p>
                 <p className="bi-caption">название компании / подпись руководителя</p>
               </div>
               <table className="bi-date">
@@ -246,11 +246,13 @@ export function BlankForm({
                       <Select
                         value={project.deliveryMonth}
                         options={catalogs.months}
+                        placeholder="месяц"
                         onChange={(deliveryMonth) => patch({ deliveryMonth })}
                       />
                       <Select
                         value={project.deliveryYear}
                         options={catalogs.deliveryYears}
+                        placeholder="год"
                         onChange={(deliveryYear) => patch({ deliveryYear })}
                       />
                     </div>
@@ -261,20 +263,6 @@ export function BlankForm({
                       options={catalogs.probabilities}
                       onChange={(probability) => patch({ probability })}
                     />
-                  </Row>
-                  <Row label="Отметка о резервировании / отказе">
-                    <div className="bi-pair">
-                      <Select
-                        value={project.reservationStatus}
-                        options={catalogs.reservationStatuses}
-                        onChange={(reservationStatus) => patch({ reservationStatus })}
-                      />
-                      <input
-                        value={project.reservationDate}
-                        onChange={(e) => patch({ reservationDate: e.target.value })}
-                        placeholder="дата резервирования"
-                      />
-                    </div>
                   </Row>
                 </tbody>
               </table>
@@ -302,7 +290,12 @@ export function BlankForm({
                         onChange={(managerAG) => patch({ managerAG })}
                       />
                     </td>
-                    <td />
+                    <td className="bi-fill">
+                      <input
+                        value={project.partnerNote}
+                        onChange={(e) => patch({ partnerNote: e.target.value })}
+                      />
+                    </td>
                   </tr>
                   {CONTACT_ROWS.map((row) => {
                     const c = project.contacts[row.key]
@@ -347,7 +340,7 @@ export function BlankForm({
                       month={project.firstContactMonth}
                       year={project.firstContactYear}
                       catalogs={catalogs}
-                      years={catalogs.deliveryYears}
+                      years={catalogs.years}
                       invalidDay={invalid('firstContactDay')}
                       invalidMonth={invalid('firstContactMonth')}
                       invalidYear={invalid('firstContactYear')}
@@ -368,13 +361,6 @@ export function BlankForm({
                       value={project.variantDesign}
                       options={catalogs.yesNo}
                       onChange={(variantDesign) => patch({ variantDesign })}
-                    />
-                  </Row>
-                  <Row label="Изготовление монтажной схемы" invalid={invalid('installScheme')}>
-                    <Select
-                      value={project.installScheme}
-                      options={catalogs.yesNo}
-                      onChange={(installScheme) => patch({ installScheme })}
                     />
                   </Row>
                   <Row label="Изготовление спецификации" invalid={invalid('specification')}>
@@ -401,7 +387,9 @@ export function BlankForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {project.materials.map((line, index) => (
+                  {project.materials.map((line, index) => {
+                    const priced = matchPriceItem(price, line.article, line.name)
+                    return (
                     <tr key={index}>
                       <td className={`bi-fill${invalid(`material-${index}-name`) ? ' cell-invalid' : ''}`}>
                         <input
@@ -412,12 +400,16 @@ export function BlankForm({
                           }
                         />
                       </td>
-                      <td className={`bi-fill${invalid(`material-${index}-unit`) ? ' cell-invalid' : ''}`}>
-                        <Select
-                          value={line.unit}
-                          options={catalogs.units}
-                          onChange={(unit) => setMaterial(index, { ...line, unit })}
-                        />
+                      <td className={priced ? undefined : `bi-fill${invalid(`material-${index}-unit`) ? ' cell-invalid' : ''}`}>
+                        {priced ? (
+                          priced.qtyUnit
+                        ) : (
+                          <Select
+                            value={line.unit}
+                            options={catalogs.units}
+                            onChange={(unit) => setMaterial(index, { ...line, unit })}
+                          />
+                        )}
                       </td>
                       <td className={`bi-fill${invalid(`material-${index}-quantity`) ? ' cell-invalid' : ''}`}>
                         <input
@@ -446,11 +438,42 @@ export function BlankForm({
                         />
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </section>
           </div>
+
+          <section className="panel extra-crm">
+            <h2>Служебные отметки</h2>
+            <p className="hint">Этих строк нет в бумажном бланке, но они нужны для сохранения.</p>
+            <div className="project-form-grid">
+              <label className="field">
+                <span className="field-label">Отметка о резервировании / отказе</span>
+                <div className="bi-pair">
+                  <Select
+                    value={project.reservationStatus}
+                    options={catalogs.reservationStatuses}
+                    onChange={(reservationStatus) => patch({ reservationStatus })}
+                  />
+                  <input
+                    value={project.reservationDate}
+                    onChange={(e) => patch({ reservationDate: e.target.value })}
+                    placeholder="дата резервирования"
+                  />
+                </div>
+              </label>
+              <label className={`field${invalid('installScheme') ? ' field-invalid' : ''}`}>
+                <span className="field-label">Изготовление монтажной схемы</span>
+                <Select
+                  value={project.installScheme}
+                  options={catalogs.yesNo}
+                  onChange={(installScheme) => patch({ installScheme })}
+                />
+              </label>
+            </div>
+          </section>
 
           {price.length > 0 ? (
             <datalist id="price-material-names">
@@ -515,15 +538,17 @@ function Select({
   value,
   options,
   onChange,
+  placeholder = '',
 }: {
   value: string
   options: string[]
   onChange: (value: string) => void
+  placeholder?: string
 }) {
   const extras = value && !options.includes(value) ? [value] : []
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="" />
+      <option value="">{placeholder}</option>
       {[...extras, ...options.filter(Boolean)].map((opt) => (
         <option key={opt} value={opt}>
           {opt}

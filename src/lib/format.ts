@@ -1,11 +1,6 @@
 import { isHighProbability, validateBlank } from './validate'
 import type { Catalogs, Project } from '../types'
 
-export function formatDateParts(day: string, month: string, year: string): string {
-  if (!day && !month && !year) return '—'
-  return [day, month, year].filter(Boolean).join(' ')
-}
-
 export type DashboardStats = {
   total: number
   complete: number

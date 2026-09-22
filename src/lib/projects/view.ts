@@ -1,5 +1,6 @@
-import type { CrmProject } from '../api/projectTypes'
+import { isDraftStatus, type CrmFormField, type CrmProject } from '../api/projectTypes'
 import type { CrmReferenceType, CrmReferenceValue } from '../api/types'
+import { asMaterials, readValue } from './formValues'
 
 export type ReferenceMap = Record<CrmReferenceType, CrmReferenceValue[]>
 
@@ -14,6 +15,27 @@ export function referenceName(
 
 export function isIncomplete(project: CrmProject): boolean {
   return !project.stage_id || !project.segment_id || !project.region_id || !project.sg_manager_id
+}
+
+export function checkLabel(project: CrmProject, fields: CrmFormField[]): string {
+  if (isDraftStatus(project.status)) return 'Черновик'
+  if (fields.length) return isBlankComplete(project, fields) ? 'Заполнен' : 'Не заполнен'
+  return isIncomplete(project) ? 'Не заполнен' : 'Заполнен'
+}
+
+export function isBlankComplete(project: CrmProject, fields: CrmFormField[]): boolean {
+  const required = fields.filter((field) => field.required && !field.disabled)
+  if (!required.length) return !isIncomplete(project)
+
+  return required.every((field) => {
+    if (field.type === 'file') return project.files.length > 0
+    const value = readValue(project, field)
+    if (field.type === 'materials') {
+      return asMaterials(value).some((line) => line.material_id > 0 && line.quantity > 0)
+    }
+    if (Array.isArray(value)) return value.length > 0
+    return typeof value === 'string' && value.trim() !== ''
+  })
 }
 
 export function formatMoney(value: number): string {

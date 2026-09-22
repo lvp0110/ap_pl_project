@@ -100,3 +100,11 @@ export type CrmProject = {
 }
 
 export type CrmProjectValues = Record<string, unknown>
+
+/** Значение `status` в CRMProjectUpsert. В swagger общий enum ContentStatus включает `draft`. */
+export const PROJECT_STATUS_DRAFT = 'draft'
+
+export function isDraftStatus(status?: string | null): boolean {
+  if (!status) return false
+  return status.toLowerCase() === PROJECT_STATUS_DRAFT || /черновик/i.test(status)
+}

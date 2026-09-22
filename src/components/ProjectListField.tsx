@@ -44,7 +44,7 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
     return () => {
       active = false
     }
-  }, [key, field.endpoint, field.depends_on, parentValue])
+  }, [key, field.endpoint, field.depends_on, field.query, parentValue])
 
   useEffect(() => {
     if (blocked) {

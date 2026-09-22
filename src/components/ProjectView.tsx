@@ -3,7 +3,9 @@ import { PARTNER_COMPANY } from '../data/defaults'
 import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
 import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
 import { readValue } from '../lib/projects/formValues'
-import { formatDate } from '../lib/projects/view'
+import { loadSheetNotes } from '../lib/projects/sheetNotes'
+import { formatDate, isBlankComplete } from '../lib/projects/view'
+import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFieldValue } from './ProjectFieldValue'
 
 type Props = {
@@ -16,6 +18,8 @@ type Props = {
 
 export function ProjectView({ project, fields, access, onBack, onEdit }: Props) {
   const plan = planBlankFields(fields)
+  const notes = loadSheetNotes(project.id)
+  const headerField = plan.note[0]
 
   function value(field: CrmFormField) {
     const parent = field.depends_on
@@ -37,7 +41,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         </div>
         <div className="project-view-actions">
           <button type="button" className="primary" onClick={onEdit}>
-            Заполнить бланк
+            {isBlankComplete(project, fields) ? 'Редактировать' : 'Заполнить бланк'}
           </button>
           <button type="button" className="ghost" onClick={onBack}>
             К списку
@@ -49,7 +53,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         <header className="bi-head">
           <div className="bi-title">
             <h2>Информирование о проекте</h2>
-            <p className="bi-company">_________{PARTNER_COMPANY}______________</p>
+            <p className="bi-company">{PARTNER_COMPANY}</p>
             <p className="bi-caption">название компании / подпись руководителя</p>
           </div>
           <table className="bi-date">
@@ -62,21 +66,32 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
             <tbody>
               <tr>
                 <td className="bi-fill">{plan.date[0] ? value(plan.date[0]) : null}</td>
-                <td className="bi-fill">{plan.note[0] ? value(plan.note[0]) : null}</td>
+                <td className="bi-fill">
+                  {headerField && !headerField.disabled
+                    ? value(headerField)
+                    : notes.header || (headerField ? value(headerField) : null)}
+                </td>
               </tr>
             </tbody>
           </table>
         </header>
 
         <ViewSection title="Информация о проекте" rows={plan.info} value={value} />
-        <ViewSection title="Контактные лица" rows={plan.contacts} value={value} />
+        <BlankContactsTable
+          fields={plan.contacts.flat()}
+          render={value}
+          readOnly
+          agNote={notes.ag}
+          sgNote={notes.sg}
+        />
         <ViewSection title="Проделанная работа" rows={plan.work} value={value} />
 
-        <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
-        {plan.materialsLead.length > 0 && (
-          <ViewSection rows={plan.materialsLead.map((field) => [field])} value={value} />
-        )}
-        {plan.materials ? <div className="bi-materials">{value(plan.materials)}</div> : null}
+        {plan.materials ? (
+          <section className="bi-block">
+            <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
+            <div className="bi-materials">{value(plan.materials)}</div>
+          </section>
+        ) : null}
       </div>
 
       {plan.extra.length > 0 && (

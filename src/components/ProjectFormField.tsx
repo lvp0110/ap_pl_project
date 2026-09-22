@@ -1,6 +1,8 @@
 import { Controller, type Control } from 'react-hook-form'
+import { SALE_PROBABILITIES, supplyYears } from '../data/defaults'
 import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
-import { asMaterials, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
+import { asMaterials, dateInputValue, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
+import { formatMoney } from '../lib/projects/view'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
 
@@ -19,6 +21,9 @@ type Props = {
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
   embed?: boolean
+  displayValue?: number
+  onMaterialsTotal?: (value: number) => void
+  notesKey?: number | string
 }
 
 export function ProjectFormField({
@@ -34,13 +39,17 @@ export function ProjectFormField({
   removedFiles,
   onRemovedFilesChange,
   embed,
+  displayValue,
+  onMaterialsTotal,
+  notesKey,
 }: Props) {
   if (field.disabled) {
     if (embed) return <input className="bi-input" value="" readOnly />
+    const text = field.code === 'potential_revenue' ? formatMoney(displayValue ?? 0) : '—'
     return (
       <label className="field field-readonly">
         <span className="field-label">{field.name}</span>
-        <input value="—" readOnly />
+        <input value={text} readOnly />
       </label>
     )
   }
@@ -102,17 +111,25 @@ export function ProjectFormField({
       <Controller
         control={control}
         name={field.code}
-        render={({ field: controlled }) => (
-          <div className="field field-span">
-            <span className="field-label">{field.name}</span>
+        render={({ field: controlled }) => {
+          const editor = (
             <ProjectMaterialsField
               value={asMaterials(controlled.value)}
               saved={savedMaterials}
               disabled={busy}
               onChange={controlled.onChange}
+              onTotalsChange={onMaterialsTotal}
+              notesKey={notesKey}
             />
-          </div>
-        )}
+          )
+          if (embed) return editor
+          return (
+            <div className="field field-span">
+              <span className="field-label">{field.name}</span>
+              {editor}
+            </div>
+          )
+        }}
       />
     )
   }
@@ -162,6 +179,48 @@ function renderControl(
 ) {
   const text = typeof controlled.value === 'string' ? controlled.value : ''
 
+  if (field.code === 'sale_probability') {
+    const current = text.replace(/%/g, '').trim()
+    const options = probabilityChoices(current)
+    return (
+      <select
+        value={current}
+        disabled={busy}
+        aria-label="Вероятность поставки"
+        onBlur={controlled.onBlur}
+        onChange={(e) => controlled.onChange(e.target.value)}
+      >
+        <option value="">%</option>
+        {options.map((value) => (
+          <option key={value} value={value}>
+            {value}%
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  if (field.code === 'planned_supply_year') {
+    const years = yearChoices(text)
+    return (
+      <select
+        value={text}
+        disabled={busy}
+        aria-label="Год поставки"
+        className={text ? undefined : 'bi-empty'}
+        onBlur={controlled.onBlur}
+        onChange={(e) => controlled.onChange(e.target.value)}
+      >
+        <option value="">год</option>
+        {years.map((year) => (
+          <option key={year} value={year}>
+            {year}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
   switch (field.type) {
     case 'list':
     case 'multiple_list':
@@ -198,7 +257,7 @@ function renderControl(
       return (
         <input
           type="date"
-          value={text}
+          value={dateInputValue(text)}
           disabled={busy}
           onBlur={controlled.onBlur}
           onChange={(e) => controlled.onChange(e.target.value)}
@@ -209,10 +268,11 @@ function renderControl(
         <select
           value={text}
           disabled={busy}
+          className={text ? undefined : 'bi-empty'}
           onBlur={controlled.onBlur}
           onChange={(e) => controlled.onChange(e.target.value)}
         >
-          <option value="" />
+          <option value="">квартал</option>
           {QUARTERS.map((quarter) => (
             <option key={quarter} value={quarter}>
               {quarter} квартал
@@ -230,4 +290,16 @@ function renderControl(
         />
       )
   }
+}
+
+function probabilityChoices(current: string): string[] {
+  const options: string[] = [...SALE_PROBABILITIES]
+  if (current && !options.includes(current)) options.unshift(current)
+  return options
+}
+
+function yearChoices(current: string): string[] {
+  const years = supplyYears()
+  if (current && !years.includes(current)) return [current, ...years]
+  return years
 }

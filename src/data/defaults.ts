@@ -8,6 +8,12 @@ export function emptyMaterial(): MaterialLine {
 
 export const MATERIAL_ROWS = 10
 
+export const SALE_PROBABILITIES = ['10', '30', '50', '70', '90'] as const
+
+export function supplyYears(fromYear = new Date().getFullYear(), extraYears = 20): string[] {
+  return Array.from({ length: extraYears + 1 }, (_, i) => String(fromYear + i))
+}
+
 /** Поля бланка, которых нет в CRM references: календарь и служебные да/нет. */
 const FORM_LISTS: Pick<
   Catalogs,
@@ -31,7 +37,7 @@ const FORM_LISTS: Pick<
     'Декабрь',
   ],
   years: Array.from({ length: 16 }, (_, i) => String(2020 + i)),
-  deliveryYears: Array.from({ length: 11 }, (_, i) => String(2020 + i)),
+  deliveryYears: supplyYears(),
   days: Array.from({ length: 31 }, (_, i) => String(i + 1)),
 }
 
@@ -86,6 +92,7 @@ export function emptyProject(id = ''): Project {
     materials: Array.from({ length: MATERIAL_ROWS }, () => emptyMaterial()),
     updatedAt: '',
     updatedBy: '',
+    partnerNote: '',
   }
 }
 

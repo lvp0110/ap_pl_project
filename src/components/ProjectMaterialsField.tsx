@@ -3,14 +3,14 @@ import { listBrands } from '../lib/api/brands'
 import { listMaterials } from '../lib/api/materials'
 import type { CrmOption, CrmProjectMaterial, CrmProjectMaterialValue } from '../lib/api/projectTypes'
 import type { CrmMaterial } from '../lib/api/types'
-import { formatMoney } from '../lib/projects/view'
-import { OptionCombobox } from './OptionCombobox'
+import { loadSheetNotes, materialNote, saveSheetNotes } from '../lib/projects/sheetNotes'
 
 type Row = {
   key: string
   brand: string
   materialId: number
   quantity: number
+  note: string
 }
 
 type Props = {
@@ -18,10 +18,18 @@ type Props = {
   saved: CrmProjectMaterial[]
   disabled: boolean
   onChange: (value: CrmProjectMaterialValue[]) => void
+  onTotalsChange?: (value: number) => void
+  notesKey?: number | string
 }
+
+const EMPTY_ROWS = 8
 
 function signature(lines: CrmProjectMaterialValue[]): string {
   return lines.map((line) => `${line.material_id}:${line.quantity}`).join('|')
+}
+
+function emptyRow(): Row {
+  return { key: crypto.randomUUID(), brand: '', materialId: 0, quantity: 0, note: '' }
 }
 
 function picked(rows: Row[]): CrmProjectMaterialValue[] {
@@ -30,22 +38,33 @@ function picked(rows: Row[]): CrmProjectMaterialValue[] {
     .map((row) => ({ material_id: row.materialId, quantity: row.quantity }))
 }
 
-function seed(value: CrmProjectMaterialValue[], known: Map<number, CrmMaterial>): Row[] {
-  return value.map((line) => ({
-    key: crypto.randomUUID(),
-    brand: known.get(line.material_id)?.brand.code ?? '',
-    materialId: line.material_id,
-    quantity: line.quantity,
-  }))
+function seed(
+  value: CrmProjectMaterialValue[],
+  known: Map<number, CrmMaterial>,
+  stored: Record<string, string>,
+): Row[] {
+  const rows: Row[] = value.map((line) => {
+    const material = known.get(line.material_id)
+    return {
+      key: crypto.randomUUID(),
+      brand: material?.brand.code ?? '',
+      materialId: line.material_id,
+      quantity: line.quantity,
+      note: materialNote(stored, line.material_id, material?.comment ?? ''),
+    }
+  })
+  while (rows.length < EMPTY_ROWS) rows.push(emptyRow())
+  return rows
 }
 
-export function ProjectMaterialsField({ value, saved, disabled, onChange }: Props) {
+export function ProjectMaterialsField({ value, saved, disabled, onChange, onTotalsChange, notesKey }: Props) {
   const known = useMemo(
     () => new Map(saved.map((line) => [line.material.id, line.material])),
     [saved],
   )
-
-  const [rows, setRows] = useState<Row[]>(() => seed(value, known))
+  const [rows, setRows] = useState<Row[]>(() =>
+    seed(value, known, notesKey === undefined ? {} : loadSheetNotes(notesKey).materials),
+  )
   const [synced, setSynced] = useState<string>(() => signature(value))
   const [brands, setBrands] = useState<CrmOption[]>([])
   const [catalog, setCatalog] = useState<Record<string, CrmMaterial[]>>({})
@@ -78,11 +97,23 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
   const incoming = signature(value)
   if (incoming !== synced) {
     setSynced(incoming)
-    setRows(seed(value, known))
+    setRows(seed(value, known, notesKey === undefined ? {} : loadSheetNotes(notesKey).materials))
+  }
+
+  function persistNotes(next: Row[]) {
+    if (notesKey === undefined) return
+    const stored = loadSheetNotes(notesKey)
+    const materials = { ...stored.materials }
+    for (const row of next) {
+      if (!row.materialId) continue
+      materials[String(row.materialId)] = row.note
+    }
+    saveSheetNotes(notesKey, { ...stored, materials })
   }
 
   function apply(next: Row[]) {
     setRows(next)
+    persistNotes(next)
     const after = signature(picked(next))
     if (after === signature(picked(rows))) return
     setSynced(after)
@@ -90,16 +121,44 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
   }
 
   function add() {
-    setRows([...rows, { key: crypto.randomUUID(), brand: '', materialId: 0, quantity: 1 }])
+    setRows([...rows, emptyRow()])
   }
 
-  function setBrand(key: string, code: string) {
-    apply(rows.map((row) => (row.key === key ? { ...row, brand: code, materialId: 0 } : row)))
+  function setGroupBrand(key: string, code: string) {
+    const start = rows.findIndex((row) => row.key === key)
+    if (start < 0) return
+    const old = rows[start].brand
+    let inGroup = true
+    apply(
+      rows.map((row, index) => {
+        if (index < start) return row
+        if (index > start && row.brand !== old) inGroup = false
+        if (!inGroup) return row
+        return { ...row, brand: code, materialId: 0, note: '' }
+      }),
+    )
   }
 
   function setMaterial(key: string, code: string) {
     const id = Number(code)
-    apply(rows.map((row) => (row.key === key ? { ...row, materialId: id > 0 ? id : 0 } : row)))
+    apply(
+      rows.map((row) => {
+        if (row.key !== key) return row
+        if (!(id > 0)) return { ...row, materialId: 0, note: '' }
+        const material =
+          (catalog[row.brand] ?? []).find((item) => item.id === id) ?? known.get(id)
+        const stored = notesKey === undefined ? {} : loadSheetNotes(notesKey).materials
+        return {
+          ...row,
+          materialId: id,
+          note: row.note.trim() ? row.note : materialNote(stored, id, material?.comment ?? ''),
+        }
+      }),
+    )
+  }
+
+  function setNote(key: string, note: string) {
+    apply(rows.map((row) => (row.key === key ? { ...row, note } : row)))
   }
 
   function setQuantity(key: string, quantity: number) {
@@ -107,110 +166,86 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
   }
 
   function remove(key: string) {
-    apply(rows.filter((row) => row.key !== key))
+    const next = rows.filter((row) => row.key !== key)
+    apply(next.length ? next : [emptyRow()])
   }
 
   function materialOf(row: Row): CrmMaterial | undefined {
     if (!row.materialId) return undefined
     const items = catalog[row.brand] ?? []
-    return items.find((item) => item.id === row.materialId) ?? known.get(row.materialId)
+    const fromBrand = items.find((item) => item.id === row.materialId)
+    if (fromBrand) return fromBrand
+    const saved = known.get(row.materialId)
+    if (saved) return saved
+    for (const list of Object.values(catalog)) {
+      const found = list.find((item) => item.id === row.materialId)
+      if (found) return found
+    }
+    return undefined
   }
+
+  useEffect(() => {
+    if (!onTotalsChange) return
+    let total = 0
+    for (const row of rows) {
+      if (!row.materialId || !row.quantity) continue
+      const fromBrand = (catalog[row.brand] ?? []).find((item) => item.id === row.materialId)
+      const savedLine = saved.find((line) => line.material.id === row.materialId)
+      const price = fromBrand?.price ?? savedLine?.material.price ?? savedLine?.unit_price ?? 0
+      total += price * row.quantity
+    }
+    onTotalsChange(total)
+  }, [rows, catalog, saved, onTotalsChange])
 
   function optionsOf(row: Row): CrmOption[] {
     const taken = new Set(rows.filter((item) => item.key !== row.key).map((item) => item.materialId))
-    return (catalog[row.brand] ?? [])
+    const options = (catalog[row.brand] ?? [])
       .filter((item) => !taken.has(item.id))
       .map((item) => ({ code: String(item.id), name: item.name }))
+    const current = materialOf(row)
+    if (current && !options.some((option) => option.code === String(current.id))) {
+      options.unshift({ code: String(current.id), name: current.name })
+    }
+    return options
   }
-
-  const total = rows.reduce((sum, row) => {
-    const material = materialOf(row)
-    return material ? sum + material.price * row.quantity : sum
-  }, 0)
 
   return (
     <div className="project-materials">
-      {rows.length > 0 && (
-        <div className="table-wrap">
-          <table className="grid">
-            <thead>
-              <tr>
-                <th>Бренд</th>
-                <th>Материал</th>
-                <th>Артикул</th>
-                <th>Комментарий</th>
-                <th>Кол-во</th>
-                <th>Ед.</th>
-                <th>Цена</th>
-                <th>Сумма</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const material = materialOf(row)
-                const options = optionsOf(row)
-                return (
-                  <tr key={row.key}>
-                    <td className="cell-brand">
-                      <OptionCombobox
-                        options={brands}
-                        value={row.brand}
-                        disabled={disabled}
-                        placeholder={brands.length ? 'бренд' : 'загрузка…'}
-                        onChange={(code) => setBrand(row.key, code)}
-                      />
-                    </td>
-                    <td className="cell-material">
-                      <OptionCombobox
-                        options={options}
-                        value={row.materialId ? String(row.materialId) : ''}
-                        disabled={disabled || !row.brand}
-                        placeholder={materialHint(row.brand, catalog[row.brand], options.length)}
-                        onChange={(code) => setMaterial(row.key, code)}
-                      />
-                    </td>
-                    <td>{material?.article || '—'}</td>
-                    <td>{material?.comment || '—'}</td>
-                    <td>
-                      <input
-                        className="quantity"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={row.quantity || ''}
-                        disabled={disabled}
-                        placeholder="кол-во"
-                        onChange={(e) => setQuantity(row.key, Number(e.target.value))}
-                      />
-                    </td>
-                    <td>{material?.unit ?? '—'}</td>
-                    <td>{material ? formatMoney(material.price) : '—'}</td>
-                    <td>{material ? formatMoney(material.price * row.quantity) : '—'}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="ghost"
-                        disabled={disabled}
-                        onClick={() => remove(row.key)}
-                      >
-                        Убрать
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={7}>Итого</td>
-                <td>{formatMoney(total)}</td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      )}
+      <table className="bi-grid bi-materials-table">
+        <thead>
+          <tr>
+            <th>Наименование</th>
+            <th>Ед. измерения</th>
+            <th>Количество</th>
+            <th>Цвет</th>
+            <th>Примечание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => {
+            const material = materialOf(row)
+            const options = optionsOf(row)
+            const groupStart = index === 0 || row.brand !== rows[index - 1].brand
+            return (
+              <MaterialBlock
+                key={row.key}
+                row={row}
+                brands={brands}
+                material={material}
+                options={options}
+                catalog={catalog[row.brand]}
+                disabled={disabled}
+                groupStart={groupStart}
+                onBrand={(code) => setGroupBrand(row.key, code)}
+                onMaterial={(code) => setMaterial(row.key, code)}
+                onQuantity={(quantity) => setQuantity(row.key, quantity)}
+                onNote={(note) => setNote(row.key, note)}
+                onRemove={() => remove(row.key)}
+              />
+            )
+          })}
+        </tbody>
+      </table>
 
       <div className="project-materials-actions">
         <button type="button" className="ghost" disabled={disabled} onClick={add}>
@@ -221,10 +256,114 @@ export function ProjectMaterialsField({ value, saved, disabled, onChange }: Prop
   )
 }
 
+function MaterialBlock({
+  row,
+  brands,
+  material,
+  options,
+  catalog,
+  disabled,
+  groupStart,
+  onBrand,
+  onMaterial,
+  onQuantity,
+  onNote,
+  onRemove,
+}: {
+  row: Row
+  brands: CrmOption[]
+  material: CrmMaterial | undefined
+  options: CrmOption[]
+  catalog: CrmMaterial[] | undefined
+  disabled: boolean
+  groupStart: boolean
+  onBrand: (code: string) => void
+  onMaterial: (code: string) => void
+  onQuantity: (quantity: number) => void
+  onNote: (note: string) => void
+  onRemove: () => void
+}) {
+  return (
+    <>
+      {groupStart ? (
+        <tr className="bi-mat-group">
+          <td className="bi-fill cell-brand">
+            <select
+              value={row.brand}
+              disabled={disabled}
+              aria-label="Бренд"
+              onChange={(e) => onBrand(e.target.value)}
+            >
+              <option value="">{brands.length ? '' : 'загрузка…'}</option>
+              {brandChoices(brands, row.brand).map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </td>
+          <td />
+          <td />
+          <td />
+          <td />
+        </tr>
+      ) : null}
+      <tr>
+        <td className="bi-fill cell-material">
+          <div className="bi-mat-name">
+            <select
+              value={row.materialId ? String(row.materialId) : ''}
+              disabled={disabled || !row.brand}
+              aria-label="Материал"
+              onChange={(e) => onMaterial(e.target.value)}
+            >
+              <option value="">{materialHint(row.brand, catalog, options.length)}</option>
+              {options.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="bi-mat-remove" disabled={disabled} onClick={onRemove} aria-label="Убрать">
+              ×
+            </button>
+          </div>
+        </td>
+        <td>{material?.unit ?? ''}</td>
+        <td className="bi-fill cell-qty">
+          <input
+            className="quantity"
+            type="number"
+            min="0"
+            step="0.01"
+            value={row.quantity || ''}
+            disabled={disabled}
+            onChange={(e) => onQuantity(Number(e.target.value))}
+          />
+        </td>
+        <td className="bi-fill" />
+        <td className="bi-fill">
+          <input
+            value={row.note}
+            disabled={disabled}
+            aria-label="Примечание"
+            onChange={(e) => onNote(e.target.value)}
+          />
+        </td>
+      </tr>
+    </>
+  )
+}
+
+function brandChoices(brands: CrmOption[], current: string): CrmOption[] {
+  if (!current || brands.some((option) => option.code === current)) return brands
+  return [{ code: current, name: current }, ...brands]
+}
+
 function materialHint(brand: string, items: CrmMaterial[] | undefined, count: number): string {
-  if (!brand) return 'сначала выберите бренд'
+  if (!brand) return ''
   if (!items) return 'загрузка…'
-  if (!items.length) return 'у бренда нет материалов'
-  if (!count) return 'всё уже выбрано'
-  return 'начните вводить'
+  if (!items.length) return 'нет материалов'
+  if (!count) return 'всё выбрано'
+  return ''
 }

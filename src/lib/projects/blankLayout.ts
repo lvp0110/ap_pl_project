@@ -17,12 +17,7 @@ const INFO_CODES = [
 
 const CONTACT_CODES = ['ag_manager_id', 'sg_manager_id', 'participant_ids']
 
-const WORK_CODES = [
-  'first_contact_date',
-  'documentation_type_ids',
-  'brand_support_status_id',
-  'support_date',
-]
+const WORK_CODES = ['first_contact_date', 'documentation_type_ids']
 
 const WORD_LABELS: Record<string, string> = {
   information_form_date: 'Дата составления',
@@ -59,7 +54,6 @@ export type BlankPlan = {
   info: CrmFormField[][]
   contacts: CrmFormField[][]
   work: CrmFormField[][]
-  materialsLead: CrmFormField[]
   materials: CrmFormField | null
   extra: CrmFormField[][]
 }
@@ -111,9 +105,20 @@ export function planBlankFields(fields: CrmFormField[]): BlankPlan {
   const info = asRows(takeList(INFO_CODES))
   const contacts = asRows(takeList(CONTACT_CODES))
   const work = asRows(takeList(WORK_CODES))
-  const materialsLead = takeList(['brand_code'])
   const materials = takeList(['materials'])[0] ?? null
   const extra = asRows(fields.filter((field) => !used.has(field.code)))
 
-  return { date, note, info, contacts, work, materialsLead, materials, extra }
+  return { date, note, info, contacts, work, materials, extra }
+}
+
+export function blankSheetFields(fields: CrmFormField[]): CrmFormField[] {
+  const plan = planBlankFields(fields)
+  return [
+    ...plan.date,
+    ...plan.note,
+    ...plan.info.flat(),
+    ...plan.contacts.flat(),
+    ...plan.work.flat(),
+    ...(plan.materials ? [plan.materials] : []),
+  ]
 }

@@ -24,15 +24,6 @@ function readCookie(name: string): string {
   return ''
 }
 
-function isCrossOrigin(): boolean {
-  if (!BASE || typeof window === 'undefined') return false
-  try {
-    return new URL(BASE, window.location.origin).origin !== window.location.origin
-  } catch {
-    return false
-  }
-}
-
 let refreshInFlight: Promise<boolean> | null = null
 
 async function parseBody(response: Response): Promise<unknown> {
@@ -46,9 +37,17 @@ async function parseBody(response: Response): Promise<unknown> {
 }
 
 function errorMessage(body: unknown, fallback: string): string {
-  if (body && typeof body === 'object' && 'error' in body) {
-    const err = (body as Envelope<unknown>).error
-    if (err) return err
+  if (!body || typeof body !== 'object') return fallback
+  const row = body as Record<string, unknown>
+  if (typeof row.error === 'string' && row.error) return row.error
+  if (typeof row.message === 'string' && row.message) return row.message
+  if (Array.isArray(row.details)) return row.details.map(String).join('; ')
+  if (row.errors && typeof row.errors === 'object') {
+    return Object.values(row.errors as Record<string, unknown>)
+      .flatMap((item) => (Array.isArray(item) ? item : [item]))
+      .map(String)
+      .filter(Boolean)
+      .join('; ')
   }
   return fallback
 }
@@ -121,5 +120,3 @@ export function asList(data: unknown): unknown[] {
   }
   return []
 }
-
-export const apiBaseIsCrossOrigin = isCrossOrigin

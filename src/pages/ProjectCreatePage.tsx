@@ -18,8 +18,13 @@ export function ProjectCreatePage() {
 
   return (
     <ProjectForm
-      onSaved={(project) => {
+      onSaved={(project, asDraft) => {
         crm.rememberProject(project)
+        if (asDraft) {
+          crm.setNotice(`Черновик «${project.name || 'без названия'}» сохранён в CRM, № ${project.id}.`)
+          navigate('/projects')
+          return
+        }
         crm.setNotice(`Проект «${project.name}» создан в CRM, № ${project.id}.`)
         navigate('/projects')
       }}

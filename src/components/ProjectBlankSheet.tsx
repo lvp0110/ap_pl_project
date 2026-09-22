@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react'
+import { useState } from 'react'
 import type { Control, FieldErrors } from 'react-hook-form'
 import { PARTNER_COMPANY } from '../data/defaults'
 import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
 import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
 import type { ProjectFormValues } from '../lib/projects/formValues'
+import { loadSheetNotes, saveSheetNotes } from '../lib/projects/sheetNotes'
+import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFormField } from './ProjectFormField'
 
 type Props = {
@@ -18,6 +21,7 @@ type Props = {
   savedMaterials: CrmProjectMaterial[]
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
+  notesKey: number | string
 }
 
 export function ProjectBlankSheet({
@@ -32,8 +36,23 @@ export function ProjectBlankSheet({
   savedMaterials,
   removedFiles,
   onRemovedFilesChange,
+  notesKey,
 }: Props) {
   const plan = planBlankFields(fields)
+  const [liveRevenue, setLiveRevenue] = useState(() =>
+    savedMaterials.reduce((sum, line) => sum + line.line_amount, 0),
+  )
+  const [notes, setNotes] = useState(() => loadSheetNotes(notesKey))
+  const headerField = plan.note[0]
+  const crmHeader = Boolean(headerField && !headerField.disabled)
+
+  function patchNotes(partial: Partial<typeof notes>) {
+    const stored = loadSheetNotes(notesKey)
+    const next = { ...stored, ...notes, ...partial }
+    if (!partial.materials) next.materials = stored.materials
+    setNotes(next)
+    saveSheetNotes(notesKey, next)
+  }
 
   function cell(field: CrmFormField) {
     return (
@@ -50,6 +69,8 @@ export function ProjectBlankSheet({
         removedFiles={removedFiles}
         onRemovedFilesChange={onRemovedFilesChange}
         embed
+        onMaterialsTotal={field.type === 'materials' ? setLiveRevenue : undefined}
+        notesKey={field.type === 'materials' ? notesKey : undefined}
       />
     )
   }
@@ -62,7 +83,7 @@ export function ProjectBlankSheet({
         <header className="bi-head">
           <div className="bi-title">
             <h2 id="blank-title">Информирование о проекте</h2>
-            <p className="bi-company">_________{PARTNER_COMPANY}______________</p>
+            <p className="bi-company">{PARTNER_COMPANY}</p>
             <p className="bi-caption">название компании / подпись руководителя</p>
           </div>
           <table className="bi-date">
@@ -75,21 +96,41 @@ export function ProjectBlankSheet({
             <tbody>
               <tr>
                 <td className="bi-fill">{plan.date[0] ? cell(plan.date[0]) : null}</td>
-                <td className="bi-fill">{plan.note[0] ? cell(plan.note[0]) : null}</td>
+                <td className="bi-fill">
+                  {headerField && crmHeader ? (
+                    cell(headerField)
+                  ) : (
+                    <input
+                      value={notes.header}
+                      disabled={busy}
+                      aria-label="Примечание"
+                      onChange={(e) => patchNotes({ header: e.target.value })}
+                    />
+                  )}
+                </td>
               </tr>
             </tbody>
           </table>
         </header>
 
         <Section title="Информация о проекте" rows={plan.info} cell={cell} />
-        <Section title="Контактные лица" rows={plan.contacts} cell={cell} />
+        <BlankContactsTable
+          fields={plan.contacts.flat()}
+          render={cell}
+          agNote={notes.ag}
+          sgNote={notes.sg}
+          onAgNote={(ag) => patchNotes({ ag })}
+          onSgNote={(sg) => patchNotes({ sg })}
+          busy={busy}
+        />
         <Section title="Проделанная работа" rows={plan.work} cell={cell} />
 
-        <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
-        {plan.materialsLead.length > 0 && (
-          <Section rows={plan.materialsLead.map((field) => [field])} cell={cell} />
-        )}
-        {plan.materials ? <div className="bi-materials">{cell(plan.materials)}</div> : null}
+        {plan.materials ? (
+          <section className="bi-block">
+            <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
+            <div className="bi-materials">{cell(plan.materials)}</div>
+          </section>
+        ) : null}
       </div>
 
       {extraFields.length > 0 && (
@@ -111,6 +152,7 @@ export function ProjectBlankSheet({
                 savedMaterials={savedMaterials}
                 removedFiles={removedFiles}
                 onRemovedFilesChange={onRemovedFilesChange}
+                displayValue={field.code === 'potential_revenue' ? liveRevenue : undefined}
               />
             ))}
           </div>

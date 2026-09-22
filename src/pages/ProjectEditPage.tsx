@@ -61,12 +61,17 @@ export function ProjectEditPage() {
   return (
     <ProjectForm
       project={loaded.project}
-      onSaved={(project) => {
+      onSaved={(project, asDraft) => {
         crm.rememberProject(project)
+        if (asDraft) {
+          crm.setNotice(`Черновик «${project.name || 'без названия'}» сохранён.`)
+          navigate('/projects')
+          return
+        }
         crm.setNotice(`Проект «${project.name}» сохранён.`)
         navigate(`/projects/${project.id}`)
       }}
-      onCancel={() => navigate(`/projects/${loaded.project?.id ?? ''}`)}
+      onCancel={() => navigate('/projects')}
     />
   )
 }

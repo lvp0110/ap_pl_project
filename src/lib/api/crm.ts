@@ -1,6 +1,7 @@
 import { emptyCatalogs } from '../../data/defaults'
 import type { Catalogs } from '../../types'
 import { apiRequest, asList, ApiError } from './client'
+import { listMaterials } from './materials'
 import {
   CRM_REFERENCE_TYPES,
   type AuthUser,
@@ -82,16 +83,11 @@ export async function listReferences(
   brandCode?: string,
 ): Promise<CrmReferenceValue[]> {
   const params = new URLSearchParams()
-  if (brandCode) params.set('brand_code', brandCode)
+  const brand = type === 'brand_support_status' ? brandCode || CRM_BRAND : brandCode
+  if (brand) params.set('brand_code', brand)
   const query = params.toString()
   const data = await apiRequest<unknown>(`/crm/references/${type}${query ? `?${query}` : ''}`)
   return asList(data).filter((row): row is CrmReferenceValue => Boolean(row) && typeof row === 'object')
-}
-
-export async function listMaterials(brandCode = CRM_BRAND): Promise<CrmMaterial[]> {
-  const query = brandCode ? `?brand_code=${encodeURIComponent(brandCode)}` : ''
-  const data = await apiRequest<unknown>(`/crm/materials${query}`)
-  return asList(data).filter((row): row is CrmMaterial => Boolean(row) && typeof row === 'object')
 }
 
 export async function listSgManagers(): Promise<CrmSgManager[]> {
@@ -159,7 +155,7 @@ export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
           .then((rows) => [type, rows] as const),
       ),
     ),
-    listMaterials().catch(() => [] as CrmMaterial[]),
+    listMaterials(CRM_BRAND).catch(() => [] as CrmMaterial[]),
     listSgManagers().catch(() => [] as CrmSgManager[]),
     import('./projects').then((mod) => mod.loadFieldOptions('/crm/project-options/employees').catch(() => [])),
   ])
