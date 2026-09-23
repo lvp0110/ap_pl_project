@@ -1,6 +1,6 @@
 import type { CrmFormField, CrmOption, CrmProject } from '../api/projectTypes'
 import type { CrmReferenceType, CrmSgManager } from '../api/types'
-import { blankLabel, blankSheetFields } from './blankLayout'
+import { blankLabel, planBlankFields } from './blankLayout'
 import { readValue } from './formValues'
 import { checkLabel, formatDate, type ReferenceMap } from './view'
 
@@ -46,7 +46,17 @@ function field(type: CrmFormField['type'], code: string, name: string): CrmFormF
 }
 
 export function listBlankFields(formFields: CrmFormField[]): CrmFormField[] {
-  const fromForm = blankSheetFields(formFields).filter((item) => !item.disabled)
+  const plan = planBlankFields(formFields)
+  const sheet = [
+    ...plan.date,
+    ...plan.note,
+    ...plan.info.flat(),
+    ...plan.contacts.flat(),
+    ...plan.work.flat(),
+    ...(plan.materials ? [plan.materials] : []),
+  ].filter((item) => !item.disabled)
+  const extra = plan.extra.flat()
+  const fromForm = [...sheet, ...extra]
   return fromForm.length ? fromForm : FALLBACK_FIELDS
 }
 

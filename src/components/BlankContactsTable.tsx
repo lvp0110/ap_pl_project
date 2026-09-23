@@ -18,6 +18,7 @@ type ContactEntry = {
   type: string
   label: string
   value: string
+  contact: string
   note: string
 }
 
@@ -49,6 +50,7 @@ export function BlankContactsTable({
         type: row.key,
         label: row.label,
         value: '',
+        contact: '',
         note: '',
       },
     ])
@@ -56,6 +58,10 @@ export function BlankContactsTable({
 
   function setValue(id: number, value: string) {
     setEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, value } : entry)))
+  }
+
+  function setContact(id: number, contact: string) {
+    setEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, contact } : entry)))
   }
 
   function setNote(id: number, note: string) {
@@ -149,7 +155,13 @@ export function BlankContactsTable({
                       </button>
                     </div>
                   </td>
-                  <td />
+                  <td className="bi-fill">
+                    <input
+                      value={entry.contact}
+                      aria-label={`Контактная информация: ${entry.label}`}
+                      onChange={(e) => setContact(entry.id, e.target.value)}
+                    />
+                  </td>
                   <td className="bi-fill">
                     <NoteCell
                       value={entry.note}

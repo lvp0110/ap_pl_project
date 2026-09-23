@@ -11,7 +11,7 @@ export function Layout() {
         <div className="brand">
           <span className="mark">AP</span>
           <div>
-            <strong>Akufon Proline</strong>
+            <strong>Akufon Project</strong>
             <span>Проекты</span>
           </div>
         </div>
