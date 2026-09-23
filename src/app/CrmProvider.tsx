@@ -16,7 +16,7 @@ import {
 } from '../lib/api/crm'
 import { listProjects } from '../lib/api/projects'
 import type { CrmProject } from '../lib/api/projectTypes'
-import { CATALOG_REFERENCE_TYPES, type AuthUser, type CrmSgManager } from '../lib/api/types'
+import { CATALOG_REFERENCE_TYPES, type AuthUser, type CrmReferenceTypeInfo, type CrmSgManager } from '../lib/api/types'
 import { emptyCatalogs } from '../data/defaults'
 import type { ReferenceMap } from '../lib/projects/view'
 
@@ -30,6 +30,7 @@ export function CrmProvider({
   const [user, setUser] = useState<AuthUser | null>(null)
   const [catalogs, setCatalogs] = useState(emptyCatalogs)
   const [references, setReferences] = useState<ReferenceMap>(emptyReferences)
+  const [referenceTypes, setReferenceTypes] = useState<CrmReferenceTypeInfo[]>([])
   const [sgManagers, setSgManagers] = useState<CrmSgManager[]>([])
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [busy, setBusy] = useState(false)
@@ -38,8 +39,9 @@ export function CrmProvider({
 
   const pull = useCallback(async () => {
     const loaded = await loadCrmCatalogs()
-    setCatalogs(catalogsFromCrm(loaded.catalogs))
+    setCatalogs(catalogsFromCrm(loaded.catalogs, loaded.referenceTypes))
     setReferences(loaded.references)
+    setReferenceTypes(loaded.referenceTypes)
     setSgManagers(loaded.sgManagers)
     try {
       setProjects(await listProjects())
@@ -86,6 +88,7 @@ export function CrmProvider({
       ready,
       catalogs,
       references,
+      referenceTypes,
       sgManagers,
       projects,
       busy,
@@ -115,6 +118,7 @@ export function CrmProvider({
           setUser(null)
           setCatalogs(emptyCatalogs())
           setReferences(emptyReferences())
+          setReferenceTypes([])
           setSgManagers([])
           setProjects([])
           setBusy(false)
@@ -140,10 +144,18 @@ export function CrmProvider({
       },
 
       addReference(key, name) {
-        const type = CATALOG_REFERENCE_TYPES[key as keyof typeof CATALOG_REFERENCE_TYPES]
+        const type = CATALOG_REFERENCE_TYPES[key]
         if (!type) return Promise.resolve()
         return write(
           () => createReference(type, name, catalogs[key].length + 1),
+          `Значение «${name}» записано в API.`,
+          'Не удалось добавить значение',
+        )
+      },
+
+      addReferenceType(type, name) {
+        return write(
+          () => createReference(type, name, (references[type]?.length ?? 0) + 1),
           `Значение «${name}» записано в API.`,
           'Не удалось добавить значение',
         )
@@ -189,7 +201,7 @@ export function CrmProvider({
         )
       },
     }
-  }, [user, ready, catalogs, references, sgManagers, projects, busy, notice, pull, onSignedIn])
+  }, [user, ready, catalogs, references, referenceTypes, sgManagers, projects, busy, notice, pull, onSignedIn])
 
   return <CrmContext.Provider value={value}>{children}</CrmContext.Provider>
 }

@@ -17,8 +17,8 @@ const FIELD_REFERENCE: Partial<Record<string, CrmReferenceType>> = {
   region_id: 'region',
   priority_id: 'priority',
   documentation_type_ids: 'documentation_type',
-  brand_support_status_id: 'brand_support_status',
-  support_status_id: 'brand_support_status',
+  brand_support_status_id: 'support_status',
+  support_status_id: 'support_status',
 }
 
 const FALLBACK_FIELDS: CrmFormField[] = [

@@ -16,10 +16,12 @@ export function CatalogsPage() {
     <CatalogsView
       catalogs={catalogs}
       references={crm.references}
+      referenceTypes={crm.referenceTypes}
       sgManagers={crm.sgManagers}
       loadedFromApi={Boolean(crm.user)}
       busy={crm.busy}
       onAddReference={crm.addReference}
+      onAddReferenceType={crm.addReferenceType}
       onUpdateReference={crm.renameReference}
       onArchiveReference={crm.archiveReferenceValue}
       onAddSgManager={crm.addSgManager}

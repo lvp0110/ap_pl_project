@@ -8,6 +8,7 @@ import {
   type CrmCatalogSnapshot,
   type CrmMaterial,
   type CrmReferenceType,
+  type CrmReferenceTypeInfo,
   type CrmReferenceValue,
   type CrmSgManager,
   type CrmSnapshot,
@@ -16,16 +17,8 @@ import {
 
 export const CRM_BRAND = (import.meta.env.VITE_CRM_BRAND || 'ecophon').trim() || 'ecophon'
 
-export function emptyReferences(): Record<CrmReferenceType, CrmReferenceValue[]> {
-  return {
-    information_source: [],
-    segment: [],
-    project_stage: [],
-    priority: [],
-    documentation_type: [],
-    region: [],
-    brand_support_status: [],
-  }
+export function emptyReferences(): Record<string, CrmReferenceValue[]> {
+  return Object.fromEntries(CRM_REFERENCE_TYPES.map((type) => [type, []]))
 }
 
 export function activeReferences(values: CrmReferenceValue[]): CrmReferenceValue[] {
@@ -78,15 +71,19 @@ export async function logout(): Promise<void> {
   }
 }
 
-export async function listReferences(
-  type: CrmReferenceType,
-  brandCode?: string,
-): Promise<CrmReferenceValue[]> {
-  const params = new URLSearchParams()
-  const brand = type === 'brand_support_status' ? brandCode || CRM_BRAND : brandCode
-  if (brand) params.set('brand_code', brand)
-  const query = params.toString()
-  const data = await apiRequest<unknown>(`/crm/references/${type}${query ? `?${query}` : ''}`)
+export async function listReferenceTypes(): Promise<CrmReferenceTypeInfo[]> {
+  const data = await apiRequest<unknown>('/crm/references')
+  return asList(data)
+    .map((row) => {
+      const item = row as Partial<CrmReferenceTypeInfo>
+      const code = String(item.code ?? '').trim()
+      return { code, name: String(item.name ?? '').trim() || code }
+    })
+    .filter((item) => item.code !== '')
+}
+
+export async function listReferences(type: CrmReferenceType): Promise<CrmReferenceValue[]> {
+  const data = await apiRequest<unknown>(`/crm/references/${type}`)
   return asList(data).filter((row): row is CrmReferenceValue => Boolean(row) && typeof row === 'object')
 }
 
@@ -101,7 +98,6 @@ export async function createReference(
   sortOrder: number,
 ): Promise<void> {
   const payload: Record<string, unknown> = { name, sort_order: sortOrder, is_active: true }
-  if (type === 'brand_support_status') payload.brand_codes = [CRM_BRAND]
   await apiRequest(`/crm/references/${type}`, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -143,17 +139,27 @@ export async function archiveSgManager(id: number): Promise<void> {
 }
 
 export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
+  let referenceTypes: CrmReferenceTypeInfo[]
+  try {
+    referenceTypes = await listReferenceTypes()
+  } catch {
+    referenceTypes = CRM_REFERENCE_TYPES.map((code) => ({ code, name: code }))
+  }
+  if (!referenceTypes.length) {
+    referenceTypes = CRM_REFERENCE_TYPES.map((code) => ({ code, name: code }))
+  }
+
   let referenceFailures = 0
   const settled = await Promise.allSettled([
     Promise.all(
-      CRM_REFERENCE_TYPES.map((type) =>
-        listReferences(type)
-          .catch(() => {
-            referenceFailures += 1
-            return [] as CrmReferenceValue[]
-          })
-          .then((rows) => [type, rows] as const),
-      ),
+      referenceTypes.map(async (type) => {
+        try {
+          return [type.code, await listReferences(type.code)] as const
+        } catch {
+          referenceFailures += 1
+          return [type.code, [] as CrmReferenceValue[]] as const
+        }
+      }),
     ),
     listMaterials(CRM_BRAND).catch(() => [] as CrmMaterial[]),
     listSgManagers().catch(() => [] as CrmSgManager[]),
@@ -161,13 +167,15 @@ export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
   ])
 
   const refs =
-    settled[0].status === 'fulfilled' ? settled[0].value : CRM_REFERENCE_TYPES.map((type) => [type, []] as const)
+    settled[0].status === 'fulfilled'
+      ? settled[0].value
+      : referenceTypes.map((type) => [type.code, [] as CrmReferenceValue[]] as const)
   const materials = settled[1].status === 'fulfilled' ? settled[1].value : []
   const managers = settled[2].status === 'fulfilled' ? settled[2].value : []
   const employees = settled[3].status === 'fulfilled' ? settled[3].value : []
 
-  if (referenceFailures === CRM_REFERENCE_TYPES.length) {
-    throw new Error('Не удалось загрузить справочники CRM. Проверьте сессию и GET /crm/references/{type}.')
+  if (referenceFailures === referenceTypes.length) {
+    throw new Error('Не удалось загрузить справочники CRM. Проверьте сессию и GET /crm/references.')
   }
 
   const byType = { ...emptyReferences(), ...Object.fromEntries(refs) }
@@ -176,6 +184,7 @@ export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
   return {
     materials,
     references: byType,
+    referenceTypes,
     sgManagers: activeManagers,
     catalogs: {
       sources: names(byType.information_source ?? []),
@@ -187,13 +196,17 @@ export async function loadCrmCatalogs(): Promise<CrmSnapshot> {
       managersSG: activeManagers.map((m) => m.name).filter(Boolean),
       managersAG: employees.map((item) => item.name).filter(Boolean),
       units,
+      probabilities: names(byType.probability ?? []),
+      reservationStatuses: names(byType.reserve ?? []),
     },
   }
 }
 
-export function catalogsFromCrm(snapshot: CrmCatalogSnapshot): Catalogs {
+export function catalogsFromCrm(snapshot: CrmCatalogSnapshot, referenceTypes: CrmReferenceTypeInfo[] = []): Catalogs {
+  const base = emptyCatalogs()
+  const loaded = new Set(referenceTypes.map((type) => type.code))
   return {
-    ...emptyCatalogs(),
+    ...base,
     sources: snapshot.sources,
     purposes: snapshot.purposes,
     stages: snapshot.stages,
@@ -203,5 +216,7 @@ export function catalogsFromCrm(snapshot: CrmCatalogSnapshot): Catalogs {
     managersSG: snapshot.managersSG,
     managersAG: snapshot.managersAG,
     units: snapshot.units,
+    probabilities: loaded.has('probability') ? snapshot.probabilities : base.probabilities,
+    reservationStatuses: loaded.has('reserve') ? snapshot.reservationStatuses : base.reservationStatuses,
   }
 }

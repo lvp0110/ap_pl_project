@@ -25,7 +25,7 @@ export function ProjectCreatePage() {
           navigate('/projects')
           return
         }
-        crm.setNotice(`Проект «${project.name}» создан в CRM, № ${project.id}.`)
+        crm.setNotice(`Бланк «${project.name}» сохранён в статусе «Заполнен», № ${project.id}.`)
         navigate('/projects')
       }}
       onCancel={() => navigate('/projects')}

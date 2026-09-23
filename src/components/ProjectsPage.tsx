@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ClipHint } from './ClipHint'
 import { ScrollHint } from './ScrollHint'
-import { isDraftStatus, type CrmFilter, type CrmFormField, type CrmOption, type CrmProject } from '../lib/api/projectTypes'
+import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../lib/api/projectTypes'
 import {
   CHECK_FILTER,
   filledListColumns,
@@ -13,7 +13,7 @@ import {
   uniqueIdOptions,
   type ListLookups,
 } from '../lib/projects/listCells'
-import { checkLabel, formatProjectCount, isIncomplete } from '../lib/projects/view'
+import { checkLabel, formatProjectCount } from '../lib/projects/view'
 
 type Props = {
   projects: CrmProject[]
@@ -235,7 +235,7 @@ export function ProjectsPage({
                   })}
                   {showCheck ? (
                     <td>
-                      <span className="prio" data-p={isDraftStatus(p.status) || isIncomplete(p) ? 'Высокий' : 'Низкий'}>
+                      <span className="prio" data-p={checkLabel(p, fields) === 'Заполнен' ? 'Низкий' : 'Высокий'}>
                         {checkLabel(p, fields)}
                       </span>
                     </td>

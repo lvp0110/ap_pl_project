@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { createProject, draftStatusCode, loadProjectForm, updateProject } from '../lib/api/projects'
-import { fillDraftPayload } from '../lib/projects/draft'
-import { useCrm } from '../app/hooks'
+import { createProject, loadProjectForm, submitProject, updateProject } from '../lib/api/projects'
 import {
   type CrmFormField,
   type CrmProject,
@@ -33,8 +31,8 @@ const NO_FILES: CrmProjectFile[] = []
 const NO_MATERIALS: CrmProjectMaterial[] = []
 
 export function ProjectForm({ project, onSaved, onCancel }: Props) {
-  const crm = useCrm()
   const [fields, setFields] = useState<CrmFormField[]>([])
+  const [savedId, setSavedId] = useState<number | undefined>(project?.id)
   const [documents, setDocuments] = useState<File[]>([])
   const [removedFiles, setRemovedFiles] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,7 +90,63 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     return map
   }, [parents, parentValues])
 
-  async function submit(entered: ProjectFormValues) {
+  function draftValues(entered: ProjectFormValues): ProjectFormValues {
+    const year = String(entered[SUPPLY_YEAR] ?? '').trim()
+    const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
+    if (Boolean(year) === Boolean(quarter)) return entered
+    return { ...entered, [SUPPLY_YEAR]: '', [SUPPLY_QUARTER]: '' }
+  }
+
+  async function store(entered: ProjectFormValues, asDraft: boolean, leaveIfUnchanged = false) {
+    const id = savedId ?? project?.id
+    const values = id ? toPatch(fields, initial, entered) : toPayload(fields, entered)
+    if (removedFiles.length) values.remove_file_ids = removedFiles
+    if (!id && asDraft && (typeof values.name !== 'string' || !String(values.name).trim())) {
+      values.name = 'Черновик'
+    }
+
+    const nothing = !Object.keys(values).length && !documents.length
+    if (asDraft && id && nothing) {
+      onCancel()
+      return
+    }
+    if (!asDraft && id && nothing && project?.document_status?.toLowerCase() === 'submitted') {
+      if (leaveIfUnchanged) onCancel()
+      else setFailure('Изменений нет.')
+      return
+    }
+
+    setSaving(true)
+    setFailure('')
+    try {
+      let saved = project
+      let nextId = id
+      if (!nextId) {
+        saved = await createProject(values, documents)
+        nextId = saved.id
+        setSavedId(nextId)
+        adoptSheetNotes(nextId)
+      } else if (!nothing) {
+        saved = await updateProject(nextId, values, documents)
+      }
+      if (asDraft) {
+        if (saved) onSaved(saved, true)
+        return
+      }
+      const wasSubmitted = project?.document_status?.toLowerCase() === 'submitted'
+      if (wasSubmitted && saved) {
+        onSaved(saved)
+        return
+      }
+      onSaved(await submitProject(nextId))
+    } catch (err) {
+      setFailure(err instanceof Error ? err.message : asDraft ? 'Не удалось сохранить черновик' : 'Не удалось сохранить проект')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function submit(entered: ProjectFormValues, leaveIfUnchanged = false) {
     const year = String(entered[SUPPLY_YEAR] ?? '').trim()
     const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
     if (Boolean(year) !== Boolean(quarter)) {
@@ -101,70 +155,16 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       return
     }
     clearErrors([SUPPLY_YEAR, SUPPLY_QUARTER])
-
-    setSaving(true)
-    setFailure('')
-    try {
-      if (project) {
-        const patch = toPatch(fields, initial, entered)
-        if (removedFiles.length) patch.remove_file_ids = removedFiles
-        if (!Object.keys(patch).length && !documents.length) {
-          setFailure('Изменений нет.')
-          return
-        }
-        onSaved(await updateProject(project.id, patch, documents))
-        return
-      }
-      const created = await createProject(toPayload(fields, entered), documents)
-      adoptSheetNotes(created.id)
-      onSaved(created)
-    } catch (err) {
-      setFailure(err instanceof Error ? err.message : 'Не удалось сохранить проект')
-    } finally {
-      setSaving(false)
-    }
+    await store(entered, false, leaveIfUnchanged)
   }
 
-  function draftValues(entered: ProjectFormValues): ProjectFormValues {
-    const year = String(entered[SUPPLY_YEAR] ?? '').trim()
-    const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
-    if (Boolean(year) === Boolean(quarter)) return entered
-    return { ...entered, [SUPPLY_YEAR]: '', [SUPPLY_QUARTER]: '' }
+  function persistDraft() {
+    return store(draftValues(getValues()), true)
   }
 
-  async function persistDraft() {
-    const entered = draftValues(getValues())
-    const values = project
-      ? toPatch(fields, initial, entered)
-      : fillDraftPayload(fields, toPayload(fields, entered), {
-          references: crm.references,
-          sgManagers: crm.sgManagers,
-          userId: crm.user?.user_id,
-        })
-    if (removedFiles.length) values.remove_file_ids = removedFiles
-    values.status = await draftStatusCode()
-    if (!project && (typeof values.name !== 'string' || !String(values.name).trim())) {
-      values.name = 'Черновик'
-    }
-
-    const onlyDraftFlag = Object.keys(values).length === 1 && !documents.length
-    if (project?.status === values.status && onlyDraftFlag) return 'skipped' as const
-
-    setSaving(true)
-    setFailure('')
-    try {
-      const saved = project
-        ? await updateProject(project.id, values, documents)
-        : await createProject(values, documents)
-      if (!project) adoptSheetNotes(saved.id)
-      onSaved(saved, true)
-      return 'saved' as const
-    } catch (err) {
-      setFailure(err instanceof Error ? err.message : 'Не удалось сохранить черновик')
-      return 'failed' as const
-    } finally {
-      setSaving(false)
-    }
+  function leaveToList() {
+    if (complete) return submit(getValues(), true)
+    return persistDraft()
   }
 
   if (loading) {
@@ -197,7 +197,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
 
       {failure && <p className="hint field-invalid">{failure}</p>}
 
-      <form className="project-form" onSubmit={handleSubmit(submit)}>
+      <form className="project-form" onSubmit={handleSubmit((entered) => submit(entered))}>
         <ProjectBlankSheet
           fields={fields}
           control={control}
@@ -222,7 +222,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
           >
             {saving ? 'Сохраняем…' : complete ? 'Сохранить бланк' : 'Сохранить черновик'}
           </button>
-          <button type="button" className="ghost" disabled={saving} onClick={onCancel}>
+          <button type="button" className="ghost" disabled={saving} onClick={() => void leaveToList()}>
             К списку
           </button>
         </div>

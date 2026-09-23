@@ -14,8 +14,8 @@ const REF_BY_CODE: Partial<Record<string, CrmReferenceType>> = {
   stage_id: 'project_stage',
   region_id: 'region',
   priority_id: 'priority',
-  brand_support_status_id: 'brand_support_status',
-  support_status_id: 'brand_support_status',
+  brand_support_status_id: 'support_status',
+  support_status_id: 'support_status',
 }
 
 function firstId(values: CrmReferenceValue[] | undefined): number | undefined {

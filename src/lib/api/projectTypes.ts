@@ -94,6 +94,8 @@ export type CrmProject = {
   total_pieces: number
   potential_revenue: number
   files: CrmProjectFile[]
+  /** `draft` до `POST /crm/projects/{id}/submit`, затем `submitted`. В тело upsert не передаётся. */
+  document_status?: string
   is_archived?: boolean
   created_at: string
   updated_at: string
@@ -101,7 +103,10 @@ export type CrmProject = {
 
 export type CrmProjectValues = Record<string, unknown>
 
-/** Значение `status` в CRMProjectUpsert. В swagger общий enum ContentStatus включает `draft`. */
+/**
+ * Статус документа в списке: `draft` | `submitted`.
+ * В swagger это `document_status`, не поле `status` у CRMProjectUpsert.
+ */
 export const PROJECT_STATUS_DRAFT = 'draft'
 
 export function isDraftStatus(status?: string | null): boolean {

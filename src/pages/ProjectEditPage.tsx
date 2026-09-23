@@ -68,8 +68,8 @@ export function ProjectEditPage() {
           navigate('/projects')
           return
         }
-        crm.setNotice(`Проект «${project.name}» сохранён.`)
-        navigate(`/projects/${project.id}`)
+        crm.setNotice(`Бланк «${project.name}» сохранён в статусе «Заполнен».`)
+        navigate('/projects')
       }}
       onCancel={() => navigate('/projects')}
     />

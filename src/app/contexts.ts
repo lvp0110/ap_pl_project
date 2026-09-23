@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 import type { CrmProject } from '../lib/api/projectTypes'
-import type { AuthUser, CrmReferenceType, CrmReferenceValue, CrmSgManager } from '../lib/api/types'
+import type { AuthUser, CrmReferenceType, CrmReferenceTypeInfo, CrmReferenceValue, CrmSgManager } from '../lib/api/types'
 import type { ReferenceMap } from '../lib/projects/view'
 import type { Catalogs, PriceItem, Project } from '../types'
 
@@ -11,6 +11,7 @@ export type CrmState = {
   ready: boolean
   catalogs: Catalogs
   references: ReferenceMap
+  referenceTypes: CrmReferenceTypeInfo[]
   sgManagers: CrmSgManager[]
   projects: CrmProject[]
   busy: boolean
@@ -21,6 +22,7 @@ export type CrmState = {
   reload: () => Promise<void>
   rememberProject: (project: CrmProject) => void
   addReference: (key: keyof Catalogs, name: string) => Promise<void>
+  addReferenceType: (type: CrmReferenceType, name: string) => Promise<void>
   renameReference: (type: CrmReferenceType, value: CrmReferenceValue, name: string) => Promise<void>
   archiveReferenceValue: (type: CrmReferenceType, value: CrmReferenceValue) => Promise<void>
   addSgManager: (name: string, email: string) => Promise<void>

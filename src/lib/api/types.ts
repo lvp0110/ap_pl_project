@@ -11,14 +11,13 @@ export type LoginResponse = {
   user: AuthUser
 }
 
-export type CrmReferenceType =
-  | 'project_stage'
-  | 'priority'
-  | 'segment'
-  | 'information_source'
-  | 'documentation_type'
-  | 'region'
-  | 'brand_support_status'
+/** Код из `GET /crm/references`. Набор не фиксирован: его отдаёт API. */
+export type CrmReferenceType = string
+
+export type CrmReferenceTypeInfo = {
+  code: CrmReferenceType
+  name: string
+}
 
 export type CrmReferenceValue = {
   id: number
@@ -57,7 +56,8 @@ export type CrmSgManager = {
 export type CrmSnapshot = {
   catalogs: CrmCatalogSnapshot
   materials: CrmMaterial[]
-  references: Record<CrmReferenceType, CrmReferenceValue[]>
+  references: Record<string, CrmReferenceValue[]>
+  referenceTypes: CrmReferenceTypeInfo[]
   sgManagers: CrmSgManager[]
 }
 
@@ -71,8 +71,11 @@ export type CrmCatalogSnapshot = {
   managersSG: string[]
   managersAG: string[]
   units: string[]
+  probabilities: string[]
+  reservationStatuses: string[]
 }
 
+/** Запасной список, если `GET /crm/references` недоступен. Совпадает с enum `CRMReferenceType` в swagger. */
 export const CRM_REFERENCE_TYPES: CrmReferenceType[] = [
   'information_source',
   'segment',
@@ -80,7 +83,9 @@ export const CRM_REFERENCE_TYPES: CrmReferenceType[] = [
   'priority',
   'documentation_type',
   'region',
-  'brand_support_status',
+  'support_status',
+  'probability',
+  'reserve',
 ]
 
 export const API_CATALOG_KEYS = [
@@ -95,11 +100,13 @@ export const API_CATALOG_KEYS = [
   'units',
 ] as const
 
-export const CATALOG_REFERENCE_TYPES: Partial<Record<(typeof API_CATALOG_KEYS)[number], CrmReferenceType>> = {
+export const CATALOG_REFERENCE_TYPES: Partial<Record<string, CrmReferenceType>> = {
   sources: 'information_source',
   purposes: 'segment',
   stages: 'project_stage',
   priorities: 'priority',
   regions: 'region',
   documentationTypes: 'documentation_type',
+  probabilities: 'probability',
+  reservationStatuses: 'reserve',
 }

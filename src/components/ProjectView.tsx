@@ -4,7 +4,7 @@ import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/proj
 import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
 import { readValue } from '../lib/projects/formValues'
 import { loadSheetNotes } from '../lib/projects/sheetNotes'
-import { formatDate, isBlankComplete } from '../lib/projects/view'
+import { formatDate, isBlankComplete, isSubmittedProject } from '../lib/projects/view'
 import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFieldValue } from './ProjectFieldValue'
 
@@ -41,7 +41,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         </div>
         <div className="project-view-actions">
           <button type="button" className="primary" onClick={onEdit}>
-            {isBlankComplete(project, fields) ? 'Редактировать' : 'Заполнить бланк'}
+            {isSubmittedProject(project) || isBlankComplete(project, fields) ? 'Редактировать' : 'Заполнить бланк'}
           </button>
           <button type="button" className="ghost" onClick={onBack}>
             К списку

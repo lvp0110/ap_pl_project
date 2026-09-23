@@ -2,7 +2,7 @@ import { isDraftStatus, type CrmFormField, type CrmProject } from '../api/projec
 import type { CrmReferenceType, CrmReferenceValue } from '../api/types'
 import { asMaterials, readValue } from './formValues'
 
-export type ReferenceMap = Record<CrmReferenceType, CrmReferenceValue[]>
+export type ReferenceMap = Record<string, CrmReferenceValue[]>
 
 export function referenceName(
   references: ReferenceMap,
@@ -17,8 +17,24 @@ export function isIncomplete(project: CrmProject): boolean {
   return !project.stage_id || !project.segment_id || !project.region_id || !project.sg_manager_id
 }
 
+export function documentStatus(project: CrmProject): string {
+  return project.document_status?.trim().toLowerCase() ?? ''
+}
+
+export function isSubmittedProject(project: CrmProject): boolean {
+  return documentStatus(project) === 'submitted'
+}
+
+export function isDraftProject(project: CrmProject): boolean {
+  const status = documentStatus(project)
+  if (status === 'submitted') return false
+  if (status === 'draft') return true
+  return isDraftStatus(project.status)
+}
+
 export function checkLabel(project: CrmProject, fields: CrmFormField[]): string {
-  if (isDraftStatus(project.status)) return 'Черновик'
+  if (isSubmittedProject(project)) return 'Заполнен'
+  if (isDraftProject(project)) return 'Черновик'
   if (fields.length) return isBlankComplete(project, fields) ? 'Заполнен' : 'Не заполнен'
   return isIncomplete(project) ? 'Не заполнен' : 'Заполнен'
 }

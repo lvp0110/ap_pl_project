@@ -39,6 +39,17 @@ async function parseBody(response: Response): Promise<unknown> {
 function errorMessage(body: unknown, fallback: string): string {
   if (!body || typeof body !== 'object') return fallback
   const row = body as Record<string, unknown>
+  const data = row.data
+  if (data && typeof data === 'object' && 'fields' in data) {
+    const fields = (data as { fields?: unknown }).fields
+    if (fields && typeof fields === 'object') {
+      const text = Object.values(fields as Record<string, unknown>)
+        .map(String)
+        .filter(Boolean)
+        .join('; ')
+      if (text) return text
+    }
+  }
   if (typeof row.error === 'string' && row.error) return row.error
   if (typeof row.message === 'string' && row.message) return row.message
   if (Array.isArray(row.details)) return row.details.map(String).join('; ')

@@ -4,6 +4,7 @@ import {
   API_CATALOG_KEYS,
   CATALOG_REFERENCE_TYPES,
   type CrmReferenceType,
+  type CrmReferenceTypeInfo,
   type CrmReferenceValue,
   type CrmSgManager,
 } from '../lib/api/types'
@@ -11,11 +12,13 @@ import type { Catalogs } from '../types'
 
 type Props = {
   catalogs: Catalogs
-  references: Record<CrmReferenceType, CrmReferenceValue[]>
+  references: Record<string, CrmReferenceValue[]>
+  referenceTypes: CrmReferenceTypeInfo[]
   sgManagers: CrmSgManager[]
   loadedFromApi: boolean
   busy: boolean
   onAddReference: (key: keyof Catalogs, name: string) => Promise<void>
+  onAddReferenceType: (type: CrmReferenceType, name: string) => Promise<void>
   onUpdateReference: (type: CrmReferenceType, value: CrmReferenceValue, name: string) => Promise<void>
   onArchiveReference: (type: CrmReferenceType, value: CrmReferenceValue) => Promise<void>
   onAddSgManager: (name: string, email: string) => Promise<void>
@@ -36,9 +39,9 @@ const GROUPS: Array<{ key: keyof Catalogs; title: string; hint: string }> = [
   { key: 'managersSG', title: 'Менеджеры СГ', hint: 'POST /crm/sg-managers — нужны имя и email' },
   { key: 'managersAG', title: 'Ответственные АГ', hint: 'GET /crm/project-options/employees' },
   { key: 'units', title: 'Ед. измерения', hint: 'Из прайса Excel и CRM-материалов' },
-  { key: 'probabilities', title: 'Вероятность поставки', hint: 'Поля бланка, в CRM references нет' },
+  { key: 'probabilities', title: 'Вероятность поставки', hint: 'GET /crm/references/probability' },
   { key: 'yesNo', title: 'Да / Нет', hint: 'Поля бланка, в CRM references нет' },
-  { key: 'reservationStatuses', title: 'Резервирование', hint: 'Поля бланка, в CRM references нет' },
+  { key: 'reservationStatuses', title: 'Резервирование', hint: 'GET /crm/references/reserve' },
 ]
 
 function ReferenceRow({
@@ -142,10 +145,12 @@ function SgManagerRow({
 export function CatalogsPage({
   catalogs,
   references,
+  referenceTypes,
   sgManagers,
   loadedFromApi,
   busy,
   onAddReference,
+  onAddReferenceType,
   onUpdateReference,
   onArchiveReference,
   onAddSgManager,
@@ -153,10 +158,15 @@ export function CatalogsPage({
   onArchiveSgManager,
   materials,
 }: Props) {
-  const [drafts, setDrafts] = useState<Partial<Record<keyof Catalogs, string>>>({})
+  const [drafts, setDrafts] = useState<Partial<Record<string, string>>>({})
   const [managerEmail, setManagerEmail] = useState('')
+  const loadedCodes = new Set(referenceTypes.map((type) => type.code))
+  const groupedCodes = new Set(
+    Object.values(CATALOG_REFERENCE_TYPES).filter((code): code is string => Boolean(code)),
+  )
+  const extraTypes = referenceTypes.filter((type) => !groupedCodes.has(type.code))
 
-  function draft(key: keyof Catalogs) {
+  function draft(key: string) {
     return drafts[key] ?? ''
   }
 
@@ -174,9 +184,9 @@ export function CatalogsPage({
 
       <section className="catalog-grid">
         {GROUPS.map((group) => {
-          const fromApi = API_KEY_SET.has(group.key)
-          const referenceType = CATALOG_REFERENCE_TYPES[group.key as keyof typeof CATALOG_REFERENCE_TYPES]
-          const editable = loadedFromApi && Boolean(referenceType)
+          const referenceType = CATALOG_REFERENCE_TYPES[group.key]
+          const fromApi = API_KEY_SET.has(group.key) || Boolean(referenceType && loadedCodes.has(referenceType))
+          const editable = loadedFromApi && Boolean(referenceType) && fromApi
           const editableManagers = loadedFromApi && group.key === 'managersSG'
           const values = editable && referenceType ? activeReferences(references[referenceType] ?? []) : []
           const plain = catalogs[group.key]
@@ -284,6 +294,56 @@ export function CatalogsPage({
                     className="ghost"
                     disabled={busy || !draft('managersSG').trim() || !managerEmail.trim()}
                   >
+                    Добавить в API
+                  </button>
+                </form>
+              )}
+            </article>
+          )
+        })}
+        {extraTypes.map((type) => {
+          const values = activeReferences(references[type.code] ?? [])
+          return (
+            <article className="panel" key={type.code}>
+              <h2>
+                {type.name || type.code}
+                <em className="api-badge">API</em>
+              </h2>
+              <p className="hint">GET /crm/references/{type.code}</p>
+              {!values.length ? (
+                <p className="hint">{loadedFromApi ? 'API вернул пустой список.' : 'Нет данных: войдите в API.'}</p>
+              ) : (
+                <ul className="catalog-list">
+                  {values.map((value) => (
+                    <ReferenceRow
+                      key={`${value.id}:${value.name}`}
+                      value={value}
+                      busy={busy}
+                      onSave={(name) => onUpdateReference(type.code, value, name)}
+                      onArchive={() => onArchiveReference(type.code, value)}
+                    />
+                  ))}
+                </ul>
+              )}
+              {loadedFromApi && (
+                <form
+                  className="catalog-add"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const name = draft(type.code).trim()
+                    if (!name) return
+                    void onAddReferenceType(type.code, name)
+                      .then(() => setDrafts((prev) => ({ ...prev, [type.code]: '' })))
+                      .catch(() => {})
+                  }}
+                >
+                  <input
+                    value={draft(type.code)}
+                    disabled={busy}
+                    placeholder="Новое значение"
+                    onChange={(e) => setDrafts((prev) => ({ ...prev, [type.code]: e.target.value }))}
+                  />
+                  <button type="submit" className="ghost" disabled={busy || !draft(type.code).trim()}>
                     Добавить в API
                   </button>
                 </form>

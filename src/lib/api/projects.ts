@@ -77,6 +77,11 @@ export async function updateProject(
   })
 }
 
+/** Проверяет обязательные поля и переводит документ из draft в submitted. */
+export async function submitProject(id: number): Promise<CrmProject> {
+  return apiRequest<CrmProject>(`/crm/projects/${id}/submit`, { method: 'POST' })
+}
+
 function payload(values: CrmProjectValues, files: File[]): RequestInit {
   if (!files.length) return { body: JSON.stringify(values) }
   const form = new FormData()
