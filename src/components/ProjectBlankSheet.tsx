@@ -123,7 +123,7 @@ export function ProjectBlankSheet({
           onSgNote={(sg) => patchNotes({ sg })}
           busy={busy}
         />
-        <Section title="Проделанная работа" rows={plan.work} cell={cell} />
+        <WorkTable rows={plan.work} cell={cell} />
 
         {plan.materials ? (
           <section className="bi-block">
@@ -159,6 +159,35 @@ export function ProjectBlankSheet({
         </section>
       )}
     </>
+  )
+}
+
+function WorkTable({
+  rows,
+  cell,
+}: {
+  rows: import('../lib/api/projectTypes').CrmFormField[][]
+  cell: (field: import('../lib/api/projectTypes').CrmFormField) => ReactNode
+}) {
+  const flat = rows.flat()
+  const lines = flat.filter((field) => field.code !== 'documentation_type_ids')
+  const pick = flat.find((field) => field.code === 'documentation_type_ids')
+  if (!flat.length) return null
+  return (
+    <section className="bi-block">
+      <h3 className="bi-section">Проделанная работа</h3>
+      <table className="bi-grid">
+        <tbody>
+          {lines.map((field) => (
+            <tr key={field.code}>
+              <th>{blankLabel(field)}</th>
+              <td className="bi-fill">{cell(field)}</td>
+            </tr>
+          ))}
+          {pick ? cell(pick) : null}
+        </tbody>
+      </table>
+    </section>
   )
 }
 

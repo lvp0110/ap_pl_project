@@ -10,6 +10,8 @@ type Props = {
   value: string | string[]
   parentValue: string
   disabled: boolean
+  invalid?: boolean
+  error?: string
   onChange: (value: string | string[]) => void
 }
 
@@ -21,7 +23,7 @@ type Loaded = {
 
 const EMPTY: Loaded = { key: '', options: [], failed: false }
 
-export function ProjectListField({ field, value, parentValue, disabled, onChange }: Props) {
+export function ProjectListField({ field, value, parentValue, disabled, invalid, error, onChange }: Props) {
   const blocked = Boolean(field.depends_on) && !parentValue
   const key = !field.endpoint || blocked ? '' : `${field.endpoint}|${field.depends_on ?? ''}=${parentValue}`
 
@@ -71,6 +73,8 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
         value={Array.isArray(value) ? value : []}
         disabled={disabled || blocked}
         hint={hint}
+        invalid={invalid}
+        error={error}
         onChange={onChange}
       />
     )

@@ -1,5 +1,5 @@
 import { Combobox } from '@base-ui-components/react/combobox'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { CrmOption } from '../lib/api/projectTypes'
 
 type Props = {
@@ -17,6 +17,7 @@ export function OptionAutocomplete({ options, value, disabled, placeholder, onCh
     [options],
   )
   const label = (code: string) => labels.get(code) ?? code
+  const anchorRef = useRef<HTMLDivElement>(null)
 
   return (
     <Combobox.Root
@@ -27,7 +28,7 @@ export function OptionAutocomplete({ options, value, disabled, placeholder, onCh
       itemToStringLabel={label}
       onValueChange={onChange}
     >
-      <Combobox.Chips className={`autocomplete-control${disabled ? ' disabled' : ''}`}>
+      <Combobox.Chips ref={anchorRef} className={`autocomplete-control${disabled ? ' disabled' : ''}`}>
         {value.map((code) => (
           <Combobox.Chip key={code} className="autocomplete-tag">
             {label(code)}
@@ -50,12 +51,19 @@ export function OptionAutocomplete({ options, value, disabled, placeholder, onCh
       </Combobox.Chips>
 
       <Combobox.Portal>
-        <Combobox.Positioner sideOffset={4} className="autocomplete-positioner">
-          <Combobox.Popup className="autocomplete-listbox">
-            <Combobox.Empty className="autocomplete-empty">Ничего не найдено</Combobox.Empty>
+        <Combobox.Positioner
+          anchor={anchorRef}
+          side="bottom"
+          align="start"
+          sideOffset={2}
+          collisionPadding={8}
+          className="dropdown-positioner"
+        >
+          <Combobox.Popup className="dropdown-listbox">
+            <Combobox.Empty className="dropdown-empty">Ничего не найдено</Combobox.Empty>
             <Combobox.List>
               {(code: string) => (
-                <Combobox.Item key={code} value={code} className="autocomplete-option">
+                <Combobox.Item key={code} value={code} className="dropdown-option">
                   {label(code)}
                 </Combobox.Item>
               )}

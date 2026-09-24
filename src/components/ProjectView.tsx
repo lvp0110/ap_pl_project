@@ -7,6 +7,7 @@ import { loadSheetNotes } from '../lib/projects/sheetNotes'
 import { formatDate, isBlankComplete, isSubmittedProject } from '../lib/projects/view'
 import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFieldValue } from './ProjectFieldValue'
+import { WorkDoneRowsView } from './WorkDoneField'
 
 type Props = {
   project: CrmProject
@@ -84,7 +85,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
           agNote={notes.ag}
           sgNote={notes.sg}
         />
-        <ViewSection title="Проделанная работа" rows={plan.work} value={value} />
+        <WorkView rows={plan.work} project={project} value={value} />
 
         {plan.materials ? (
           <section className="bi-block">
@@ -121,6 +122,39 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         </section>
       )}
     </div>
+  )
+}
+
+function WorkView({
+  rows,
+  project,
+  value,
+}: {
+  rows: CrmFormField[][]
+  project: CrmProject
+  value: (field: CrmFormField) => ReactNode
+}) {
+  const flat = rows.flat()
+  const lines = flat.filter((field) => field.code !== 'documentation_type_ids')
+  const pick = flat.find((field) => field.code === 'documentation_type_ids')
+  const picked = pick ? readValue(project, pick) : []
+  const codes = Array.isArray(picked) ? picked.filter((item): item is string => typeof item === 'string') : []
+  if (!flat.length) return null
+  return (
+    <section className="bi-block">
+      <h3 className="bi-section">Проделанная работа</h3>
+      <table className="bi-grid">
+        <tbody>
+          {lines.map((field) => (
+            <tr key={field.code}>
+              <th>{blankLabel(field)}</th>
+              <td className="bi-fill">{value(field)}</td>
+            </tr>
+          ))}
+          {pick ? <WorkDoneRowsView field={pick} value={codes} /> : null}
+        </tbody>
+      </table>
+    </section>
   )
 }
 

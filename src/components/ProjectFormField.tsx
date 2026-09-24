@@ -3,6 +3,7 @@ import { SALE_PROBABILITIES, supplyYears } from '../data/defaults'
 import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
 import { asMaterials, dateInputValue, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
 import { formatMoney } from '../lib/projects/view'
+import { Dropdown } from './Dropdown'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
 
@@ -43,6 +44,27 @@ export function ProjectFormField({
   onMaterialsTotal,
   notesKey,
 }: Props) {
+  if (field.code === 'documentation_type_ids') {
+    return (
+      <Controller
+        control={control}
+        name={field.code}
+        rules={{ required: field.required ? `${field.name}: заполните поле` : false }}
+        render={({ field: controlled }) => (
+          <ProjectListField
+            field={field}
+            value={toCodes(controlled.value)}
+            parentValue={parentValue}
+            disabled={busy || Boolean(field.disabled)}
+            invalid={Boolean(error)}
+            error={error}
+            onChange={controlled.onChange}
+          />
+        )}
+      />
+    )
+  }
+
   if (field.disabled) {
     if (embed) return <input className="bi-input" value="" readOnly />
     const text = field.code === 'potential_revenue' ? formatMoney(displayValue ?? 0) : '—'
@@ -184,41 +206,30 @@ function renderControl(
     const current = text.replace(/%/g, '').trim()
     const options = probabilityChoices(current)
     return (
-      <select
+      <Dropdown
         value={current}
         disabled={busy}
-        aria-label="Вероятность поставки"
+        label="Вероятность поставки"
+        placeholder="%"
+        options={options.map((item) => ({ value: item, label: `${item}%` }))}
         onBlur={controlled.onBlur}
-        onChange={(e) => controlled.onChange(e.target.value)}
-      >
-        <option value="">%</option>
-        {options.map((value) => (
-          <option key={value} value={value}>
-            {value}%
-          </option>
-        ))}
-      </select>
+        onChange={controlled.onChange}
+      />
     )
   }
 
   if (field.code === 'planned_supply_year') {
     const years = yearChoices(text)
     return (
-      <select
+      <Dropdown
         value={text}
         disabled={busy}
-        aria-label="Год поставки"
-        className={text ? undefined : 'bi-empty'}
+        label="Год поставки"
+        placeholder="год"
+        options={years.map((year) => ({ value: year, label: year }))}
         onBlur={controlled.onBlur}
-        onChange={(e) => controlled.onChange(e.target.value)}
-      >
-        <option value="">год</option>
-        {years.map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
+        onChange={controlled.onChange}
+      />
     )
   }
 
@@ -266,20 +277,14 @@ function renderControl(
       )
     case 'quarter':
       return (
-        <select
+        <Dropdown
           value={text}
           disabled={busy}
-          className={text ? undefined : 'bi-empty'}
+          placeholder="квартал"
+          options={QUARTERS.map((quarter) => ({ value: quarter, label: `${quarter} квартал` }))}
           onBlur={controlled.onBlur}
-          onChange={(e) => controlled.onChange(e.target.value)}
-        >
-          <option value="">квартал</option>
-          {QUARTERS.map((quarter) => (
-            <option key={quarter} value={quarter}>
-              {quarter} квартал
-            </option>
-          ))}
-        </select>
+          onChange={controlled.onChange}
+        />
       )
     default:
       return (

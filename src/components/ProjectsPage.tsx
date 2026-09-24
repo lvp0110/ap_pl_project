@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ClipHint } from './ClipHint'
+import { Dropdown } from './Dropdown'
 import { ScrollHint } from './ScrollHint'
 import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../lib/api/projectTypes'
 import {
@@ -181,19 +182,14 @@ export function ProjectsPage({
                   ) : (
                     <span className="col-toggle col-toggle-off" aria-hidden="true" />
                   )}
-                  <select
+                  <Dropdown
                     value={selected[item.code] ?? ''}
                     disabled={busy || !item.options.length}
-                    aria-label={item.label}
-                    onChange={(e) => onFilterChange(item.code, e.target.value)}
-                  >
-                    <option value="">все</option>
-                    {item.options.map((option) => (
-                      <option key={option.code} value={option.code}>
-                        {option.name}
-                      </option>
-                    ))}
-                  </select>
+                    label={item.label}
+                    placeholder="все"
+                    options={item.options.map((option) => ({ value: option.code, label: option.name }))}
+                    onChange={(next) => onFilterChange(item.code, next)}
+                  />
                 </div>
               )
             })}

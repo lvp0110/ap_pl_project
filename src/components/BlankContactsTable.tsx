@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
+import { Dropdown } from './Dropdown'
 import type { CrmFormField } from '../lib/api/projectTypes'
 
 type Props = {
@@ -205,21 +206,14 @@ function NoteCell({
 
 function ContactRoleSelect({ onPick }: { onPick: (type: string) => void }) {
   return (
-    <select
+    <Dropdown
       value=""
-      aria-label="Тип контактного лица"
-      className="bi-empty"
-      onChange={(e) => {
-        const type = e.target.value
+      label="Тип контактного лица"
+      placeholder="Контактные лица"
+      options={CONTACT_ROWS.map((row) => ({ value: row.key, label: row.label }))}
+      onChange={(type) => {
         if (type) onPick(type)
       }}
-    >
-      <option value="">Контактные лица</option>
-      {CONTACT_ROWS.map((row) => (
-        <option key={row.key} value={row.key}>
-          {row.label}
-        </option>
-      ))}
-    </select>
+    />
   )
 }

@@ -4,6 +4,7 @@ import { listMaterials } from '../lib/api/materials'
 import type { CrmOption, CrmProjectMaterial, CrmProjectMaterialValue } from '../lib/api/projectTypes'
 import type { CrmMaterial } from '../lib/api/types'
 import { loadSheetNotes, materialNote, saveSheetNotes } from '../lib/projects/sheetNotes'
+import { Dropdown } from './Dropdown'
 
 type Row = {
   key: string
@@ -288,19 +289,17 @@ function MaterialBlock({
       {groupStart ? (
         <tr className="bi-mat-group">
           <td className="bi-fill cell-brand">
-            <select
+            <Dropdown
               value={row.brand}
               disabled={disabled}
-              aria-label="Бренд"
-              onChange={(e) => onBrand(e.target.value)}
-            >
-              <option value="">{brands.length ? '' : 'загрузка…'}</option>
-              {brandChoices(brands, row.brand).map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
+              label="Бренд"
+              placeholder={brands.length ? '' : 'загрузка…'}
+              options={brandChoices(brands, row.brand).map((option) => ({
+                value: option.code,
+                label: option.name,
+              }))}
+              onChange={onBrand}
+            />
           </td>
           <td />
           <td />
@@ -311,19 +310,14 @@ function MaterialBlock({
       <tr>
         <td className="bi-fill cell-material">
           <div className="bi-mat-name">
-            <select
+            <Dropdown
               value={row.materialId ? String(row.materialId) : ''}
               disabled={disabled || !row.brand}
-              aria-label="Материал"
-              onChange={(e) => onMaterial(e.target.value)}
-            >
-              <option value="">{materialHint(row.brand, catalog, options.length)}</option>
-              {options.map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
+              label="Материал"
+              placeholder={materialHint(row.brand, catalog, options.length)}
+              options={options.map((option) => ({ value: option.code, label: option.name }))}
+              onChange={onMaterial}
+            />
             <button type="button" className="bi-mat-remove" disabled={disabled} onClick={onRemove} aria-label="Убрать">
               ×
             </button>

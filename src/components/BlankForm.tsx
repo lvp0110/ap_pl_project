@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Dropdown } from './Dropdown'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
 import { priceNote } from '../lib/excel'
 import { collectBlankErrors } from '../lib/validate'
@@ -571,16 +572,8 @@ function Select({
   placeholder?: string
 }) {
   const extras = value && !options.includes(value) ? [value] : []
-  return (
-    <select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{placeholder}</option>
-      {[...extras, ...options.filter(Boolean)].map((opt) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
-      ))}
-    </select>
-  )
+  const items = [...extras, ...options.filter(Boolean)].map((opt) => ({ value: opt, label: opt }))
+  return <Dropdown value={value} options={items} placeholder={placeholder} onChange={onChange} />
 }
 
 function DateTriple({
