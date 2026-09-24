@@ -50,6 +50,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
   const [query, setQuery] = useState('')
   const [notice, setNotice] = useState('')
   const [failure, setFailure] = useState('')
+  const [priceHidden, setPriceHidden] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -216,7 +217,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
       ) : (
         <>
           <div className="table-wrap">
-            <table className="grid">
+            <table className={priceHidden ? 'grid price-hidden' : 'grid'}>
             <colgroup>
               <col className="col-article" />
               <col className="col-material" />
@@ -227,14 +228,24 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
             </colgroup>
             <thead>
               <tr>
-                <th>Артикул</th>
-                <th>Материал</th>
-                <th>Цена</th>
-                <th>Ед.</th>
-                <th>Комментарий</th>
-                <th />
+                <th>{priceHidden ? null : 'Артикул'}</th>
+                <th>{priceHidden ? null : 'Материал'}</th>
+                <th>{priceHidden ? null : 'Цена'}</th>
+                <th>{priceHidden ? null : 'Ед.'}</th>
+                <th>{priceHidden ? null : 'Комментарий'}</th>
+                <th>
+                  <button
+                    type="button"
+                    className="ghost materials-hide"
+                    aria-expanded={!priceHidden}
+                    onClick={() => setPriceHidden((hidden) => !hidden)}
+                  >
+                    {priceHidden ? 'Показать' : 'Скрыть'}
+                  </button>
+                </th>
               </tr>
             </thead>
+            {!priceHidden && (
             <tbody>
               {materials.length === 0 || visible.length === 0 ? (
                 <tr>
@@ -259,9 +270,10 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
                 ))
               )}
             </tbody>
+            )}
           </table>
           </div>
-          <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />
+          {!priceHidden && <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />}
         </>
       )}
     </section>

@@ -1353,6 +1353,18 @@ legend {
   font-size: 11px;
 }
 
+.materials-panel .grid th:last-child .materials-hide {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.materials-panel .grid.price-hidden th:not(:last-child) {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
 .autocomplete-control {
   display: flex;
   flex-wrap: wrap;
