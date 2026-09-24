@@ -4,7 +4,7 @@ import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmFormField, CrmOption } from '../lib/api/projectTypes'
 
 const FIELD_LABEL = 'Проделанная работа'
-const PICK_LABEL = 'Отметьте галочку справа'
+const PICK_LABEL = 'Выбрать'
 
 type Props = {
   options: CrmOption[]

@@ -1,4 +1,4 @@
-import type { CrmFormField, CrmOption, CrmProject } from '../api/projectTypes'
+import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../api/projectTypes'
 import type { CrmReferenceType, CrmSgManager } from '../api/types'
 import { blankLabel, planBlankFields } from './blankLayout'
 import { readValue } from './formValues'
@@ -8,6 +8,7 @@ export type ListLookups = {
   references: ReferenceMap
   sgManagers: CrmSgManager[]
   employees: CrmOption[]
+  filters?: CrmFilter[]
 }
 
 const FIELD_REFERENCE: Partial<Record<string, CrmReferenceType>> = {
@@ -68,12 +69,7 @@ export function filledListColumns(fields: CrmFormField[], projects: CrmProject[]
 }
 
 function columnLabels(fields: CrmFormField[]): string[] {
-  return fields.map((item) => {
-    const label = blankLabel(item)
-    if (item.code === 'planned_supply_quarter') return 'Квартал поставки'
-    const same = fields.filter((other) => blankLabel(other) === label).length
-    return same > 1 ? item.name : label
-  })
+  return fields.map((item) => item.name.trim() || blankLabel(item))
 }
 
 export function formatBlankCell(project: CrmProject, field: CrmFormField, lookups: ListLookups): string {
@@ -105,7 +101,7 @@ export function formatBlankCell(project: CrmProject, field: CrmFormField, lookup
   if (field.type === 'quarter') return `${text} квартал`
   if (field.code === 'sale_probability') return `${text}%`
   if (field.type === 'list') return lookupName(field, text, lookups)
-  return text
+  return filterOptionName(field.code, text, lookups) || text
 }
 
 function lookupName(field: CrmFormField, code: string, lookups: ListLookups): string {
@@ -123,7 +119,12 @@ function lookupName(field: CrmFormField, code: string, lookups: ListLookups): st
   }
   const employee = lookups.employees.find((option) => option.code === code)
   if (employee) return employee.name
-  return code
+  return filterOptionName(field.code, code, lookups) || code
+}
+
+function filterOptionName(fieldCode: string, code: string, lookups: ListLookups): string {
+  const filter = lookups.filters?.find((item) => item.code === fieldCode)
+  return filter?.options.find((option) => option.code === code)?.name ?? ''
 }
 
 export const ROW_ID_FILTER = '_id'

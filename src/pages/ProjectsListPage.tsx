@@ -110,6 +110,7 @@ export function ProjectsListPage() {
           references: crm.references,
           sgManagers: crm.sgManagers,
           employees,
+          filters,
         }}
         filters={signed ? filters : []}
         selected={selected}
