@@ -30,6 +30,11 @@ app.use(
     target: UPSTREAM_URL,
     changeOrigin: true,
     xfwd: true,
+    // ConstrTodo ставит куки с Domain=$COOKIE_DOMAIN своего хоста; для
+    // crmakyfon.constrtodo.ru браузер такой Set-Cookie отбрасывает («Domain
+    // недопустим для текущего URL хоста»). Без Domain кука host-only — ровно
+    // для того адреса, с которого открыт фронт.
+    cookieDomainRewrite: { '*': '' },
     proxyTimeout: 120_000,
     timeout: 120_000,
     pathFilter: (pathname) =>
