@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
-import { BlankForm } from '../components/BlankForm'
 import { ProjectsPage } from '../components/ProjectsPage'
 import { useBlanks, useCrm } from '../app/hooks'
-import { catalogsWithPriceUnits } from '../lib/excel'
 import { listProjects, loadFieldOptions, loadProjectFilters, loadProjectForm } from '../lib/api/projects'
 import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../lib/api/projectTypes'
 import { isServerFilter } from '../lib/projects/listCells'
@@ -44,10 +42,6 @@ export function ProjectsListPage() {
   const signed = Boolean(crm.user)
   const requestKey = signed ? `${serverKey}|${reloadAt}` : ''
   const ready = Boolean(requestKey) && loaded.key === requestKey
-  const catalogs = useMemo(
-    () => catalogsWithPriceUnits(crm.catalogs, blanks.price),
-    [crm.catalogs, blanks.price],
-  )
 
   useEffect(() => {
     if (!requestKey) return
@@ -137,26 +131,6 @@ export function ProjectsListPage() {
           void crm.reload()
         }}
       />
-
-      {blanks.draft && (
-        <BlankForm
-          project={blanks.draft.project}
-          catalogs={catalogs}
-          price={blanks.price}
-          busy={crm.busy}
-          isNew={blanks.draft.isNew}
-          onImportPrice={(file) => {
-            void blanks.importPrice(file).then(crm.setNotice).catch(() => crm.setNotice('Не удалось прочитать прайс Excel'))
-          }}
-          onExportPrice={() => {
-            void blanks.exportPrice().then(crm.setNotice).catch(() => crm.setNotice('Не удалось выгрузить прайс'))
-          }}
-          onChange={blanks.changeDraft}
-          onSave={blanks.saveDraft}
-          onClose={blanks.closeDraft}
-          onDelete={blanks.draft.isNew ? undefined : blanks.deleteDraft}
-        />
-      )}
     </>
   )
 }

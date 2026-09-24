@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import type { MaterialDraft } from '../lib/api/materials'
 import type { CrmMaterial } from '../lib/api/types'
 
@@ -16,6 +16,26 @@ export function MaterialRow({ material, brand, busy, onSave, onArchive }: Props)
   const [price, setPrice] = useState(String(material.price))
   const [unit, setUnit] = useState(material.unit)
   const [comment, setComment] = useState(material.comment ?? '')
+  const nameRef = useRef<HTMLTextAreaElement>(null)
+
+  useLayoutEffect(() => {
+    const el = nameRef.current
+    const cell = el?.parentElement
+    if (!el || !cell) return
+    let width = cell.clientWidth
+    const fit = () => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+    fit()
+    const observer = new ResizeObserver(() => {
+      if (cell.clientWidth === width) return
+      width = cell.clientWidth
+      fit()
+    })
+    observer.observe(cell)
+    return () => observer.disconnect()
+  }, [name])
 
   const draft: MaterialDraft = {
     brand_code: brand,
@@ -47,8 +67,15 @@ export function MaterialRow({ material, brand, busy, onSave, onArchive }: Props)
       <td>
         <input value={article} disabled={busy} onChange={(e) => setArticle(e.target.value)} />
       </td>
-      <td>
-        <input value={name} disabled={busy} onChange={(e) => setName(e.target.value)} />
+      <td className="cell-material">
+        <textarea
+          ref={nameRef}
+          rows={1}
+          value={name}
+          disabled={busy}
+          aria-label="Материал"
+          onChange={(e) => setName(e.target.value)}
+        />
       </td>
       <td>
         <input

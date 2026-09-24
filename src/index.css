@@ -160,6 +160,7 @@ h3,
 }
 
 .main {
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -284,6 +285,16 @@ h3,
 .ghost:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.drawer-actions .primary:disabled,
+.project-form-actions .primary:disabled,
+.drawer-actions .ghost:disabled,
+.project-form-actions .ghost:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border-color: var(--line);
+  opacity: 1;
 }
 
 .kpi-grid {
@@ -825,7 +836,7 @@ h3,
 .prio[data-p='Низкий'] { color: var(--ink-soft); }
 
 .blank-root {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 20;
   display: grid;
@@ -835,7 +846,7 @@ h3,
 }
 
 .blank-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   border: 0;
   background: rgb(28 25 23 / 0.45);
@@ -912,7 +923,10 @@ legend {
 
 .drawer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .catalog-grid {
@@ -930,12 +944,27 @@ legend {
 
 .catalog-list li {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
+  border: 0;
+}
+
+.catalog-list li::before {
+  content: "";
+  width: 0.38em;
+  height: 0.38em;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 
 .catalog-list input {
   flex: 1;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .catalog-list .ghost {
@@ -945,15 +974,33 @@ legend {
 }
 
 .catalog-list li.catalog-row-stack {
-  flex-direction: column;
-  align-items: stretch;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 6px;
+  padding: 10px 12px;
+  border: 0;
+  background: linear-gradient(to bottom, transparent 0%, #fdeea0 26%, #faf9f5 74%, transparent 100%);
+}
+
+.catalog-list li.catalog-row-stack::before {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+}
+
+.catalog-list li.catalog-row-stack > input,
+.catalog-list li.catalog-row-stack > .catalog-row-actions {
+  grid-column: 2;
 }
 
 .catalog-list li.catalog-row-stack input {
   flex: none;
   width: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .catalog-row-actions {
@@ -984,9 +1031,33 @@ legend {
   color: var(--ink-soft);
 }
 
-.project-form-actions {
+.project-form-actions,
+.drawer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+}
+
+.unsaved-warning {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1 0 100%;
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.editor-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--paper);
 }
 
 .extra-crm {
@@ -1109,37 +1180,39 @@ legend {
   flex: 0 1 320px;
 }
 
+.materials-search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+}
+
 .materials-panel .table-wrap {
-  width: max-content;
+  width: 100%;
   max-width: 100%;
-  max-height: 420px;
+  overflow: visible;
   background: #fff;
   border: 0;
   color: #1a1a1a;
   font-family: Arial, Helvetica, sans-serif;
-  scrollbar-gutter: stable;
-}
-
-.materials-panel .table-wrap::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-.materials-panel .table-wrap::-webkit-scrollbar-thumb {
-  background: #c4b8a8;
-  border: 2px solid var(--paper-2);
-}
-
-.materials-panel .table-wrap::-webkit-scrollbar-track {
-  background: var(--paper-2);
 }
 
 .materials-panel .grid {
-  width: max-content;
+  width: 100%;
+  table-layout: fixed;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 15px;
   color: #1a1a1a;
 }
+
+.materials-panel .col-article { width: 8rem; }
+.materials-panel .col-price { width: 6.5rem; }
+.materials-panel .col-unit { width: 4.5rem; }
+.materials-panel .col-comment { width: 8rem; }
+.materials-panel .col-actions { width: 9.5rem; }
 
 .materials-panel .grid th,
 .materials-panel .grid td {
@@ -1147,6 +1220,7 @@ legend {
   vertical-align: middle;
   line-height: 1.35;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .materials-panel .grid tr > :last-child {
@@ -1195,10 +1269,11 @@ legend {
   cursor: default;
 }
 
-.materials-panel .grid input {
+.materials-panel .grid input,
+.materials-panel .grid textarea {
   display: block;
-  width: auto;
-  field-sizing: content;
+  width: 100%;
+  max-width: 100%;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1208,6 +1283,27 @@ legend {
   line-height: 1.35;
   color: inherit;
   min-width: 0;
+}
+
+.materials-panel .grid input {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.materials-panel .grid td.cell-material,
+.materials-panel .grid th:nth-child(2) {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.materials-panel .grid td.cell-material textarea {
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .materials-panel .grid td.materials-actions,
@@ -1350,13 +1446,26 @@ legend {
 
 .catalog-add {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .catalog-add input {
-  flex: 1;
+  flex: none;
+  width: 100%;
   min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: inherit;
+  line-height: normal;
+}
+
+.catalog-add input[placeholder='Новое значение']:placeholder-shown {
+  text-align: center;
 }
 
 .catalog-add-stack {
@@ -1565,6 +1674,10 @@ legend {
 
 .bi-fill {
   background: #fff2cc;
+}
+
+.bi-saved .bi-fill {
+  background: #fff;
 }
 
 .bi-fill input,

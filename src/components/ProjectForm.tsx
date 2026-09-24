@@ -39,6 +39,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState('')
   const [initial, setInitial] = useState<ProjectFormValues>({})
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   const {
     control,
@@ -81,6 +82,13 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     }
   }, [reset, project])
 
+  const watched = (allValues as ProjectFormValues | undefined) ?? {}
+  const dirty = useMemo(() => {
+    if (!fields.length) return false
+    if (documents.length > 0 || removedFiles.length > 0) return true
+    return Object.keys(toPatch(fields, initial, watched)).length > 0
+  }, [fields, documents.length, removedFiles, initial, watched])
+
   const selected = useMemo(() => {
     const map: Record<string, string> = {}
     parents.forEach((code, index) => {
@@ -97,7 +105,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     return { ...entered, [SUPPLY_YEAR]: '', [SUPPLY_QUARTER]: '' }
   }
 
-  async function store(entered: ProjectFormValues, asDraft: boolean, leaveIfUnchanged = false) {
+  async function store(entered: ProjectFormValues, asDraft: boolean) {
     const id = savedId ?? project?.id
     const values = id ? toPatch(fields, initial, entered) : toPayload(fields, entered)
     if (removedFiles.length) values.remove_file_ids = removedFiles
@@ -106,13 +114,8 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     }
 
     const nothing = !Object.keys(values).length && !documents.length
-    if (asDraft && id && nothing) {
-      onCancel()
-      return
-    }
-    if (!asDraft && id && nothing && project?.document_status?.toLowerCase() === 'submitted') {
-      if (leaveIfUnchanged) onCancel()
-      else setFailure('Изменений нет.')
+    if (nothing) {
+      setFailure('Изменений нет.')
       return
     }
 
@@ -134,11 +137,11 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
         return
       }
       const wasSubmitted = project?.document_status?.toLowerCase() === 'submitted'
-      if (wasSubmitted && saved) {
-        onSaved(saved)
-        return
+      if (!wasSubmitted) {
+        if (!nextId) return
+        saved = await submitProject(nextId)
       }
-      onSaved(await submitProject(nextId))
+      if (saved) onSaved(saved)
     } catch (err) {
       setFailure(err instanceof Error ? err.message : asDraft ? 'Не удалось сохранить черновик' : 'Не удалось сохранить проект')
     } finally {
@@ -146,7 +149,8 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     }
   }
 
-  async function submit(entered: ProjectFormValues, leaveIfUnchanged = false) {
+  async function submit(entered: ProjectFormValues) {
+    if (!dirty || !complete) return
     const year = String(entered[SUPPLY_YEAR] ?? '').trim()
     const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
     if (Boolean(year) !== Boolean(quarter)) {
@@ -155,16 +159,20 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       return
     }
     clearErrors([SUPPLY_YEAR, SUPPLY_QUARTER])
-    await store(entered, false, leaveIfUnchanged)
+    await store(entered, false)
   }
 
   function persistDraft() {
+    if (!dirty) return
     return store(draftValues(getValues()), true)
   }
 
-  function leaveToList() {
-    if (complete) return submit(getValues(), true)
-    return persistDraft()
+  function requestLeave() {
+    if (!dirty) {
+      onCancel()
+      return
+    }
+    setConfirmLeave(true)
   }
 
   if (loading) {
@@ -214,16 +222,30 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
         />
 
         <div className="project-form-actions">
-          <button
-            type={complete ? 'submit' : 'button'}
-            className="primary"
-            disabled={saving}
-            onClick={complete ? undefined : () => void persistDraft()}
-          >
-            {saving ? 'Сохраняем…' : complete ? 'Сохранить бланк' : 'Сохранить черновик'}
-          </button>
-          <button type="button" className="ghost" disabled={saving} onClick={() => void leaveToList()}>
+          {confirmLeave && (
+            <p className="unsaved-warning">
+              Есть несохранённые данные. Закрыть бланк без сохранения?
+              <button type="button" className="ghost" onClick={() => setConfirmLeave(false)}>
+                Остаться
+              </button>
+              <button type="button" className="danger" onClick={onCancel}>
+                Закрыть
+              </button>
+            </p>
+          )}
+          <button type="button" className="ghost" disabled={saving} onClick={requestLeave}>
             К списку
+          </button>
+          <button
+            type="button"
+            className={complete ? 'ghost' : 'primary'}
+            disabled={!dirty || saving}
+            onClick={() => void persistDraft()}
+          >
+            {saving ? 'Сохраняем…' : 'Сохранить черновик'}
+          </button>
+          <button type="submit" className={complete ? 'primary' : 'ghost'} disabled={!dirty || !complete || saving}>
+            {saving ? 'Сохраняем…' : 'Сохранить бланк'}
           </button>
         </div>
       </form>

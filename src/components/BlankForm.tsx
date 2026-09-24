@@ -6,6 +6,7 @@ import type { Catalogs, Contact, MaterialLine, PriceItem, Project } from '../typ
 
 type Props = {
   project: Project
+  origin: Project
   catalogs: Catalogs
   price: PriceItem[]
   busy?: boolean
@@ -35,6 +36,7 @@ function matchPriceItem(price: PriceItem[], article: string, name: string): Pric
 
 export function BlankForm({
   project,
+  origin,
   catalogs,
   price,
   busy,
@@ -48,21 +50,31 @@ export function BlankForm({
 }: Props) {
   const priceRef = useRef<HTMLInputElement>(null)
   const [showErrors, setShowErrors] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const check = useMemo(() => collectBlankErrors(project), [project])
   const complete = check.messages.length === 0
+  const dirty = JSON.stringify(project) !== JSON.stringify(origin)
 
   function invalid(key: string) {
     return showErrors && check.keys.has(key)
   }
 
+  function requestLeave() {
+    if (!dirty) {
+      onClose()
+      return
+    }
+    setConfirmLeave(true)
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') requestLeave()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [dirty, onClose])
 
   function patch(partial: Partial<Project>) {
     onChange({ ...project, ...partial })
@@ -105,7 +117,7 @@ export function BlankForm({
 
   return (
     <div className="blank-root">
-      <button type="button" className="blank-backdrop" aria-label="Закрыть" onClick={onClose} />
+      <button type="button" className="blank-backdrop" aria-label="Закрыть" onClick={requestLeave} />
       <div className="blank-sheet" ref={sheetRef} role="dialog" aria-labelledby="blank-title">
         <div className="blank-toolbar">
           <div className={`check-banner ${complete ? 'ok' : 'bad'}`}>
@@ -500,13 +512,24 @@ export function BlankForm({
               </span>
             )}
             <div className="drawer-actions">
-              <button type="button" className="ghost" onClick={onClose}>
+              {confirmLeave && (
+                <p className="unsaved-warning">
+                  Есть несохранённые данные. Закрыть бланк без сохранения?
+                  <button type="button" className="ghost" onClick={() => setConfirmLeave(false)}>
+                    Остаться
+                  </button>
+                  <button type="button" className="danger" onClick={onClose}>
+                    Закрыть
+                  </button>
+                </p>
+              )}
+              <button type="button" className="ghost" onClick={requestLeave}>
                 К списку
               </button>
-              <button type="button" className="ghost" onClick={onSave}>
+              <button type="button" className={complete ? 'ghost' : 'primary'} disabled={!dirty || busy} onClick={onSave}>
                 Сохранить черновик
               </button>
-              <button type="submit" className="primary">
+              <button type="submit" className={complete ? 'primary' : 'ghost'} disabled={!dirty || !complete || busy}>
                 Сохранить бланк
               </button>
             </div>

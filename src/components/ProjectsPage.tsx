@@ -38,6 +38,12 @@ type FilterItem = {
   column: boolean
 }
 
+const HIDDEN_FILTERS = new Set(['document_status'])
+
+function hiddenFilter(filter: { code: string; name?: string }): boolean {
+  return HIDDEN_FILTERS.has(filter.code) || filter.name?.trim() === 'Статус документа'
+}
+
 const SHORT_LABEL: Record<string, string> = {
   [ROW_ID_FILTER]: '№',
   [CHECK_FILTER]: 'Проверка',
@@ -82,7 +88,7 @@ export function ProjectsPage({
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [hiddenCols, setHiddenCols] = useState<string[]>([])
   const allBox = useRef<HTMLInputElement>(null)
-  const applied = Object.keys(selected).length
+  const applied = Object.keys(selected).filter((code) => !HIDDEN_FILTERS.has(code)).length
   const columns = filledListColumns(listBlankFields(fields), projects, lookups)
   const shown = columns.filter((column) => !hiddenCols.includes(column.field.code))
   const showId = !hiddenCols.includes(ROW_ID_FILTER)
@@ -263,15 +269,17 @@ function filterBoard(
 ): FilterItem[] {
   const columnItems: FilterItem[] = [
     { code: ROW_ID_FILTER, label: SHORT_LABEL[ROW_ID_FILTER], options: uniqueIdOptions(projects), column: true },
-    ...columns.map((column) => {
-      const api = filters.find((filter) => filter.code === column.field.code)
-      return {
-        code: column.field.code,
-        label: SHORT_LABEL[column.field.code] ?? column.label,
-        options: api?.options ?? uniqueCellOptions(projects, column.field, lookups),
-        column: true,
-      }
-    }),
+    ...columns
+      .filter((column) => !hiddenFilter({ code: column.field.code, name: column.label }))
+      .map((column) => {
+        const api = filters.find((filter) => filter.code === column.field.code)
+        return {
+          code: column.field.code,
+          label: SHORT_LABEL[column.field.code] ?? column.label,
+          options: api?.options ?? uniqueCellOptions(projects, column.field, lookups),
+          column: true,
+        }
+      }),
     {
       code: CHECK_FILTER,
       label: SHORT_LABEL[CHECK_FILTER],
@@ -284,7 +292,7 @@ function filterBoard(
   ]
   const taken = new Set(columnItems.map((item) => item.code))
   const extras = filters
-    .filter((filter) => !taken.has(filter.code))
+    .filter((filter) => !taken.has(filter.code) && !hiddenFilter(filter))
     .map((filter) => ({
       code: filter.code,
       label: SHORT_LABEL[filter.code] ?? filter.name,

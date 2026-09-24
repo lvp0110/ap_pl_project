@@ -29,12 +29,14 @@ export function BlanksProvider({ children }: { children: ReactNode }) {
       setOperator,
 
       openBlank(project) {
-        setDraft({ isNew: false, key: project.id, project: { ...project } })
+        const copy = structuredClone(project)
+        setDraft({ isNew: false, key: project.id, project: copy, origin: structuredClone(copy) })
       },
 
       openNewBlank() {
         const id = nextId(projects)
-        setDraft({ isNew: true, key: id, project: emptyProject(id) })
+        const project = emptyProject(id)
+        setDraft({ isNew: true, key: id, project, origin: structuredClone(project) })
       },
 
       changeDraft(project) {

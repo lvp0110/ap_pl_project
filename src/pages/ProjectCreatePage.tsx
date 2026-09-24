@@ -1,34 +1,14 @@
-import { Navigate, useNavigate } from 'react-router'
-import { ProjectForm } from '../components/ProjectForm'
+import { useEffect } from 'react'
+import { Navigate } from 'react-router'
 import { useCrm } from '../app/hooks'
 
 export function ProjectCreatePage() {
   const crm = useCrm()
-  const navigate = useNavigate()
 
-  if (!crm.ready) {
-    return (
-      <div className="page">
-        <p className="hint">Проверяем сессию ConstrTodo…</p>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (crm.user) crm.openProjectEditor('new')
+  }, [crm.user, crm.openProjectEditor])
 
-  if (!crm.user) return <Navigate to="/projects" replace />
-
-  return (
-    <ProjectForm
-      onSaved={(project, asDraft) => {
-        crm.rememberProject(project)
-        if (asDraft) {
-          crm.setNotice(`Черновик «${project.name || 'без названия'}» сохранён в CRM, № ${project.id}.`)
-          navigate('/projects')
-          return
-        }
-        crm.setNotice(`Бланк «${project.name}» сохранён в статусе «Заполнен», № ${project.id}.`)
-        navigate('/projects')
-      }}
-      onCancel={() => navigate('/projects')}
-    />
-  )
+  if (crm.ready && !crm.user) return <Navigate to="/projects" replace />
+  return null
 }

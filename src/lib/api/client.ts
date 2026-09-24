@@ -89,6 +89,16 @@ async function refreshSession(): Promise<boolean> {
   }
 }
 
+export async function keepSession(): Promise<boolean> {
+  if (readCookie('csrf_token') && (await refreshSession())) return true
+  try {
+    await apiRequest('/auth/session')
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
   const headers = new Headers(init.headers)
   if (!headers.has('accept')) headers.set('accept', 'application/json')

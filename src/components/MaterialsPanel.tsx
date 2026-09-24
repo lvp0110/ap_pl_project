@@ -23,6 +23,15 @@ function describeWrite(err: unknown, fallback: string): string {
   return message || fallback
 }
 
+function matchesQuery(item: CrmMaterial, query: string): boolean {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!tokens.length) return true
+  const hay = [item.article ?? '', item.name, String(item.price), item.unit, item.comment ?? '']
+    .join(' ')
+    .toLowerCase()
+  return tokens.every((token) => hay.includes(token))
+}
+
 function describeImport(err: unknown): string {
   if (!(err instanceof ApiError)) {
     return err instanceof Error ? err.message : 'Не удалось загрузить прайс'
@@ -38,6 +47,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
   const [brand, setBrand] = useState('')
   const [materials, setMaterials] = useState<CrmMaterial[]>([])
   const [busy, setBusy] = useState(false)
+  const [query, setQuery] = useState('')
   const [notice, setNotice] = useState('')
   const [failure, setFailure] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
@@ -76,6 +86,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
 
   async function pickBrand(code: string) {
     setBrand(code)
+    setQuery('')
     setNotice('')
     await refresh(code)
   }
@@ -147,6 +158,8 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
 
   if (!loadedFromApi) return null
 
+  const visible = materials.filter((item) => matchesQuery(item, query))
+
   return (
     <section className="panel materials-panel">
       <h2>Материалы бренда</h2>
@@ -176,6 +189,14 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
           Обновить
         </button>
         <input
+          className="materials-search"
+          type="search"
+          value={query}
+          disabled={busy || !brand}
+          placeholder="Поиск по прайсу"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <input
           ref={fileInput}
           type="file"
           accept=".xlsx"
@@ -196,6 +217,14 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
         <>
           <div className="table-wrap">
             <table className="grid">
+            <colgroup>
+              <col className="col-article" />
+              <col className="col-material" />
+              <col className="col-price" />
+              <col className="col-unit" />
+              <col className="col-comment" />
+              <col className="col-actions" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Артикул</th>
@@ -207,14 +236,18 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
               </tr>
             </thead>
             <tbody>
-              {materials.length === 0 ? (
+              {materials.length === 0 || visible.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="empty-cell">
-                    {busy ? 'Загружаем материалы…' : 'У бренда нет материалов. Загрузите прайс Excel.'}
+                    {materials.length === 0
+                      ? busy
+                        ? 'Загружаем материалы…'
+                        : 'У бренда нет материалов. Загрузите прайс Excel.'
+                      : 'Ничего не найдено.'}
                   </td>
                 </tr>
               ) : (
-                materials.map((material) => (
+                visible.map((material) => (
                   <MaterialRow
                     key={`${material.id}:${material.name}:${material.price}`}
                     material={material}

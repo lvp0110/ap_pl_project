@@ -4,7 +4,9 @@ import type { AuthUser, CrmReferenceType, CrmReferenceTypeInfo, CrmReferenceValu
 import type { ReferenceMap } from '../lib/projects/view'
 import type { Catalogs, PriceItem, Project } from '../types'
 
-export type Draft = { project: Project; isNew: boolean; key: string }
+export type Draft = { project: Project; origin: Project; isNew: boolean; key: string }
+
+export type OpenEditor = { id: number | 'new' }
 
 export type CrmState = {
   user: AuthUser | null
@@ -21,6 +23,9 @@ export type CrmState = {
   signOut: () => Promise<void>
   reload: () => Promise<void>
   rememberProject: (project: CrmProject) => void
+  editor: OpenEditor | null
+  openProjectEditor: (id: number | 'new') => void
+  closeProjectEditor: () => void
   addReference: (key: keyof Catalogs, name: string) => Promise<void>
   addReferenceType: (type: CrmReferenceType, name: string) => Promise<void>
   renameReference: (type: CrmReferenceType, value: CrmReferenceValue, name: string) => Promise<void>

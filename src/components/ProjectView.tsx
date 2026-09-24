@@ -49,7 +49,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         </div>
       </header>
 
-      <div className="bi-sheet">
+      <div className="bi-sheet bi-saved">
         <header className="bi-head">
           <div className="bi-title">
             <h2>Информирование о проекте</h2>
