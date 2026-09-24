@@ -58,6 +58,7 @@ export type Project = {
   materials: MaterialLine[]
   updatedAt: string
   updatedBy: string
+  partnerNote: string
 }
 
 export type Catalogs = {
@@ -65,7 +66,6 @@ export type Catalogs = {
   purposes: string[]
   stages: string[]
   probabilities: string[]
-  yesNo: string[]
   units: string[]
   reservationStatuses: string[]
   months: string[]

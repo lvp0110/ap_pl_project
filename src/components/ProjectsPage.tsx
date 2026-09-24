@@ -1,17 +1,25 @@
-import type { CrmFilter, CrmProject } from '../lib/api/projectTypes'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { ClipHint } from './ClipHint'
+import { Dropdown } from './Dropdown'
+import { ScrollHint } from './ScrollHint'
+import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../lib/api/projectTypes'
 import {
-  formatAmount,
-  formatDate,
-  formatMoney,
-  formatProjectCount,
-  isIncomplete,
-  referenceName,
-  type ReferenceMap,
-} from '../lib/projects/view'
+  CHECK_FILTER,
+  filledListColumns,
+  formatBlankCell,
+  listBlankFields,
+  matchesListFilters,
+  ROW_ID_FILTER,
+  uniqueCellOptions,
+  uniqueIdOptions,
+  type ListLookups,
+} from '../lib/projects/listCells'
+import { checkLabel, formatProjectCount } from '../lib/projects/view'
 
 type Props = {
   projects: CrmProject[]
-  references: ReferenceMap
+  fields: CrmFormField[]
+  lookups: ListLookups
   filters: CrmFilter[]
   selected: Record<string, string>
   loadedFromApi: boolean
@@ -24,9 +32,49 @@ type Props = {
   onRefresh: () => void
 }
 
+type FilterItem = {
+  code: string
+  label: string
+  options: CrmOption[]
+  column: boolean
+}
+
+const HIDDEN_FILTERS = new Set(['document_status'])
+
+function hiddenFilter(filter: { code: string; name?: string }): boolean {
+  return HIDDEN_FILTERS.has(filter.code) || filter.name?.trim() === 'Статус документа'
+}
+
+const SHORT_LABEL: Record<string, string> = {
+  [ROW_ID_FILTER]: '№',
+  [CHECK_FILTER]: 'Проверка',
+  information_form_date: 'Дата',
+  comment: 'Примечание',
+  information_source_id: 'Источник',
+  name: 'Проект',
+  address: 'Адрес',
+  segment_id: 'Назначение',
+  stage_id: 'Стадия',
+  planned_shipment_date: 'Дата поставки',
+  planned_supply_quarter: 'Квартал',
+  planned_supply_year: 'Год',
+  sale_probability: 'Вероятность',
+  ag_manager_id: 'Ответственный АГ',
+  sg_manager_id: 'Ответственный SG',
+  participant_ids: 'Контактные лица',
+  first_contact_date: 'Первый контакт',
+  documentation_type_ids: 'Работа',
+  materials: 'Материалы',
+  region_id: 'Регион',
+  status: 'Статус',
+  priority_id: 'Приоритет',
+  support_status_id: 'Поддержка',
+}
+
 export function ProjectsPage({
   projects,
-  references,
+  fields,
+  lookups,
   filters,
   selected,
   loadedFromApi,
@@ -38,10 +86,37 @@ export function ProjectsPage({
   onOpen,
   onRefresh,
 }: Props) {
-  const applied = Object.keys(selected).length
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [hiddenCols, setHiddenCols] = useState<string[]>([])
+  const allBox = useRef<HTMLInputElement>(null)
+  const applied = Object.keys(selected).filter((code) => !HIDDEN_FILTERS.has(code)).length
+  const columns = filledListColumns(listBlankFields(fields), projects, lookups)
+  const shown = columns.filter((column) => !hiddenCols.includes(column.field.code))
+  const showId = !hiddenCols.includes(ROW_ID_FILTER)
+  const showCheck = !hiddenCols.includes(CHECK_FILTER)
+  const visible = projects.filter((project) => matchesListFilters(project, selected, fields, lookups, columns))
+  const colSpan = Math.max(1, (showId ? 1 : 0) + shown.length + (showCheck ? 1 : 0))
+  const board = filterBoard(columns, filters, projects, fields, lookups)
+  const columnCodes = board.filter((item) => item.column).map((item) => item.code)
+  const allColumnsOn = columnCodes.length > 0 && columnCodes.every((code) => !hiddenCols.includes(code))
+  const someColumnsOn = columnCodes.some((code) => !hiddenCols.includes(code))
+
+  useLayoutEffect(() => {
+    if (allBox.current) allBox.current.indeterminate = !allColumnsOn && someColumnsOn
+  }, [allColumnsOn, someColumnsOn])
+
+  function toggleColumn(code: string) {
+    setHiddenCols((current) =>
+      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
+    )
+  }
+
+  function toggleAllColumns() {
+    setHiddenCols(allColumnsOn ? columnCodes : [])
+  }
 
   return (
-    <div className="page">
+    <div className="page projects-page">
       <header className="page-head">
         <div>
           <p className="eyebrow">Бланк информирования Ecophon</p>
@@ -55,55 +130,90 @@ export function ProjectsPage({
         </button>
       </header>
 
-      <div className="filters">
-        {filters.map((filter) => (
-          <select
-            key={filter.code}
-            value={selected[filter.code] ?? ''}
-            disabled={busy}
-            onChange={(e) => onFilterChange(filter.code, e.target.value)}
-          >
-            <option value="">{filter.name}: все</option>
-            {filter.options.map((option) => (
-              <option key={option.code} value={option.code}>
-                {option.name}
-              </option>
-            ))}
-          </select>
-        ))}
+      <div className="filter-bar">
         <div className="chips">
+          <button
+            type="button"
+            className={`chip${filtersOpen ? ' active' : ''}`}
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            {filtersOpen ? 'Скрыть фильтры' : applied ? `Фильтры (${applied})` : 'Фильтры'}
+          </button>
           {applied > 0 && (
             <button type="button" className="chip" onClick={onReset}>
-              Сбросить фильтры ({applied})
+              Сбросить
             </button>
           )}
           <button type="button" className="chip" disabled={busy || !loadedFromApi} onClick={onRefresh}>
             Обновить
           </button>
+          {filtersOpen ? (
+            <label className="filter-all">
+              <input
+                ref={allBox}
+                type="checkbox"
+                checked={allColumnsOn}
+                onChange={toggleAllColumns}
+              />
+              Все столбцы
+            </label>
+          ) : null}
         </div>
+        {filtersOpen ? (
+          <div className="filters">
+            {board.map((item) => {
+              const open = item.column && !hiddenCols.includes(item.code)
+              return (
+                <div className="filter-field" key={item.code}>
+                  <span className="filter-name" title={item.label}>
+                    {item.label}
+                  </span>
+                  {item.column ? (
+                    <button
+                      type="button"
+                      className={`col-toggle${open ? ' on' : ''}`}
+                      aria-pressed={open}
+                      aria-label={open ? `Скрыть столбец «${item.label}»` : `Показать столбец «${item.label}»`}
+                      onClick={() => toggleColumn(item.code)}
+                    >
+                      {open ? '✓' : ''}
+                    </button>
+                  ) : (
+                    <span className="col-toggle col-toggle-off" aria-hidden="true" />
+                  )}
+                  <Dropdown
+                    value={selected[item.code] ?? ''}
+                    disabled={busy || !item.options.length}
+                    label={item.label}
+                    placeholder="все"
+                    options={item.options.map((option) => ({ value: option.code, label: option.name }))}
+                    onChange={(next) => onFilterChange(item.code, next)}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        ) : null}
       </div>
 
       {failure && <p className="hint field-invalid">{failure}</p>}
 
-      <div className="table-wrap">
-        <table className="grid">
+      <ScrollHint>
+        <table className="grid projects-grid">
           <thead>
             <tr>
-              <th>№</th>
-              <th>Проект</th>
-              <th>Регион</th>
-              <th>Стадия</th>
-              <th>%</th>
-              <th>Объём</th>
-              <th>Выручка</th>
-              <th>Обновлён</th>
-              <th>Проверка</th>
+              {showId ? <th>№</th> : null}
+              {shown.map((column) => (
+                <th key={column.field.code}>{column.label}</th>
+              ))}
+              {showCheck ? <th>Проверка</th> : null}
             </tr>
           </thead>
           <tbody>
-            {projects.length === 0 ? (
+            {visible.length === 0 ? (
               <tr>
-                <td colSpan={9} className="empty-cell">
+                <td colSpan={colSpan} className="empty-cell">
                   {!loadedFromApi
                     ? 'Войдите в API ConstrTodo, чтобы увидеть проекты.'
                     : busy
@@ -114,37 +224,76 @@ export function ProjectsPage({
                 </td>
               </tr>
             ) : (
-              projects.map((p) => (
+              visible.map((p) => (
                 <tr key={p.id} onClick={() => onOpen(p)}>
-                  <td>{p.erp_code || p.id}</td>
-                  <td className="name-cell">{p.name || 'Без названия'}</td>
-                  <td>{referenceName(references, 'region', p.region_id)}</td>
-                  <td>
-                    {p.stage_id ? (
-                      <span className="badge">{referenceName(references, 'project_stage', p.stage_id)}</span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td>{p.sale_probability ? `${p.sale_probability}%` : '—'}</td>
-                  <td>{formatAmount(p.total_area, 'м²')}</td>
-                  <td>{formatMoney(p.potential_revenue)}</td>
-                  <td>{formatDate(p.updated_at)}</td>
-                  <td>
-                    <span className="prio" data-p={isIncomplete(p) ? 'Высокий' : 'Низкий'}>
-                      {isIncomplete(p) ? 'Не заполнен' : 'Заполнен'}
-                    </span>
-                  </td>
+                  {showId ? <td>{p.erp_code || p.id}</td> : null}
+                  {shown.map((column) => {
+                    const text = formatBlankCell(p, column.field, lookups)
+                    return (
+                      <td key={column.field.code} className={column.field.code === 'name' ? 'name-cell' : undefined}>
+                        <ClipHint text={text || '—'} />
+                      </td>
+                    )
+                  })}
+                  {showCheck ? (
+                    <td>
+                      <span className="prio" data-p={checkLabel(p, fields) === 'Заполнен' ? 'Низкий' : 'Высокий'}>
+                        {checkLabel(p, fields)}
+                      </span>
+                    </td>
+                  ) : null}
                 </tr>
               ))
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollHint>
       <p className="hint">
-        {formatProjectCount(projects.length)}
+        {formatProjectCount(visible.length)}
         {applied > 0 ? ` · фильтров: ${applied}` : ''}
       </p>
     </div>
   )
+}
+
+function filterBoard(
+  columns: ReturnType<typeof filledListColumns>,
+  filters: CrmFilter[],
+  projects: CrmProject[],
+  fields: CrmFormField[],
+  lookups: ListLookups,
+): FilterItem[] {
+  const columnItems: FilterItem[] = [
+    { code: ROW_ID_FILTER, label: SHORT_LABEL[ROW_ID_FILTER], options: uniqueIdOptions(projects), column: true },
+    ...columns
+      .filter((column) => !hiddenFilter({ code: column.field.code, name: column.label }))
+      .map((column) => {
+        const api = filters.find((filter) => filter.code === column.field.code)
+        return {
+          code: column.field.code,
+          label: SHORT_LABEL[column.field.code] ?? column.label,
+          options: api?.options ?? uniqueCellOptions(projects, column.field, lookups),
+          column: true,
+        }
+      }),
+    {
+      code: CHECK_FILTER,
+      label: SHORT_LABEL[CHECK_FILTER],
+      options: [...new Set(projects.map((project) => checkLabel(project, fields)))].map((name) => ({
+        code: name,
+        name,
+      })),
+      column: true,
+    },
+  ]
+  const taken = new Set(columnItems.map((item) => item.code))
+  const extras = filters
+    .filter((filter) => !taken.has(filter.code) && !hiddenFilter(filter))
+    .map((filter) => ({
+      code: filter.code,
+      label: SHORT_LABEL[filter.code] ?? filter.name,
+      options: filter.options,
+      column: false,
+    }))
+  return [...extras, ...columnItems]
 }

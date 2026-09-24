@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { CrmContext, type CrmState } from './contexts'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { CrmContext, type CrmState, type OpenEditor } from './contexts'
 import {
   archiveReference,
   archiveSgManager,
@@ -14,9 +14,10 @@ import {
   updateReference,
   updateSgManager,
 } from '../lib/api/crm'
+import { keepSession } from '../lib/api/client'
 import { listProjects } from '../lib/api/projects'
 import type { CrmProject } from '../lib/api/projectTypes'
-import { CATALOG_REFERENCE_TYPES, type AuthUser, type CrmSgManager } from '../lib/api/types'
+import { CATALOG_REFERENCE_TYPES, type AuthUser, type CrmReferenceTypeInfo, type CrmSgManager } from '../lib/api/types'
 import { emptyCatalogs } from '../data/defaults'
 import type { ReferenceMap } from '../lib/projects/view'
 
@@ -30,35 +31,77 @@ export function CrmProvider({
   const [user, setUser] = useState<AuthUser | null>(null)
   const [catalogs, setCatalogs] = useState(emptyCatalogs)
   const [references, setReferences] = useState<ReferenceMap>(emptyReferences)
+  const [referenceTypes, setReferenceTypes] = useState<CrmReferenceTypeInfo[]>([])
   const [sgManagers, setSgManagers] = useState<CrmSgManager[]>([])
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [ready, setReady] = useState(false)
+  const [editor, setEditor] = useState<OpenEditor | null>(null)
 
-  const pull = useCallback(async () => {
-    const [loaded, crm] = await Promise.all([loadCrmCatalogs(), listProjects()])
-    setCatalogs(catalogsFromCrm(loaded.catalogs))
-    setReferences(loaded.references)
-    setSgManagers(loaded.sgManagers)
-    setProjects(crm)
+  const openProjectEditor = useCallback((id: number | 'new') => {
+    setEditor((current) => (current?.id === id ? current : { id }))
   }, [])
 
+  const closeProjectEditor = useCallback(() => {
+    setEditor(null)
+  }, [])
+
+  const pull = useCallback(async () => {
+    const loaded = await loadCrmCatalogs()
+    setCatalogs(catalogsFromCrm(loaded.catalogs, loaded.referenceTypes))
+    setReferences(loaded.references)
+    setReferenceTypes(loaded.referenceTypes)
+    setSgManagers(loaded.sgManagers)
+    try {
+      setProjects(await listProjects())
+    } catch {
+      setProjects([])
+    }
+  }, [])
+
+  const onSignedInRef = useRef(onSignedIn)
+  onSignedInRef.current = onSignedIn
+
   useEffect(() => {
+    let active = true
     void (async () => {
       try {
         const session = await loadSession()
-        if (!session) return
+        if (!active || !session) return
         setUser(session)
-        onSignedIn(session)
+        onSignedInRef.current(session)
         await pull()
       } catch (err) {
-        setNotice(err instanceof Error ? err.message : 'Сессия есть, но данные CRM не загрузились')
+        if (active) setNotice(err instanceof Error ? err.message : 'Сессия есть, но данные CRM не загрузились')
       } finally {
-        setReady(true)
+        if (active) setReady(true)
       }
     })()
-  }, [pull, onSignedIn])
+    return () => {
+      active = false
+    }
+  }, [pull])
+
+  useEffect(() => {
+    if (!user) return
+    let stopped = false
+    const touch = () => {
+      if (stopped || document.visibilityState === 'hidden') return
+      void keepSession().then((ok) => {
+        if (stopped || ok) return
+        setNotice('Сессия истекла. Войдите снова: открытый бланк сохранится в этой вкладке.')
+      })
+    }
+    touch()
+    const timer = window.setInterval(touch, 60_000)
+    document.addEventListener('visibilitychange', touch)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', touch)
+    }
+  }, [user])
 
   const value = useMemo<CrmState>(() => {
     async function write(action: () => Promise<void>, success: string, failure: string) {
@@ -82,6 +125,7 @@ export function CrmProvider({
       ready,
       catalogs,
       references,
+      referenceTypes,
       sgManagers,
       projects,
       busy,
@@ -109,8 +153,10 @@ export function CrmProvider({
           await logout()
         } finally {
           setUser(null)
+          setEditor(null)
           setCatalogs(emptyCatalogs())
           setReferences(emptyReferences())
+          setReferenceTypes([])
           setSgManagers([])
           setProjects([])
           setBusy(false)
@@ -135,11 +181,23 @@ export function CrmProvider({
         setProjects((prev) => [project, ...prev.filter((item) => item.id !== project.id)])
       },
 
+      editor,
+      openProjectEditor,
+      closeProjectEditor,
+
       addReference(key, name) {
-        const type = CATALOG_REFERENCE_TYPES[key as keyof typeof CATALOG_REFERENCE_TYPES]
+        const type = CATALOG_REFERENCE_TYPES[key]
         if (!type) return Promise.resolve()
         return write(
           () => createReference(type, name, catalogs[key].length + 1),
+          `Значение «${name}» записано в API.`,
+          'Не удалось добавить значение',
+        )
+      },
+
+      addReferenceType(type, name) {
+        return write(
+          () => createReference(type, name, (references[type]?.length ?? 0) + 1),
           `Значение «${name}» записано в API.`,
           'Не удалось добавить значение',
         )
@@ -185,7 +243,7 @@ export function CrmProvider({
         )
       },
     }
-  }, [user, ready, catalogs, references, sgManagers, projects, busy, notice, pull, onSignedIn])
+  }, [user, ready, catalogs, references, referenceTypes, sgManagers, projects, busy, notice, editor, openProjectEditor, closeProjectEditor, pull, onSignedIn])
 
   return <CrmContext.Provider value={value}>{children}</CrmContext.Provider>
 }

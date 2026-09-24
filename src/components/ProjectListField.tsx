@@ -3,12 +3,15 @@ import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmFormField, CrmOption } from '../lib/api/projectTypes'
 import { OptionAutocomplete } from './OptionAutocomplete'
 import { OptionCombobox } from './OptionCombobox'
+import { WorkDoneField } from './WorkDoneField'
 
 type Props = {
   field: CrmFormField
   value: string | string[]
   parentValue: string
   disabled: boolean
+  invalid?: boolean
+  error?: string
   onChange: (value: string | string[]) => void
 }
 
@@ -20,7 +23,7 @@ type Loaded = {
 
 const EMPTY: Loaded = { key: '', options: [], failed: false }
 
-export function ProjectListField({ field, value, parentValue, disabled, onChange }: Props) {
+export function ProjectListField({ field, value, parentValue, disabled, invalid, error, onChange }: Props) {
   const blocked = Boolean(field.depends_on) && !parentValue
   const key = !field.endpoint || blocked ? '' : `${field.endpoint}|${field.depends_on ?? ''}=${parentValue}`
 
@@ -32,7 +35,8 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
   useEffect(() => {
     if (!key || !field.endpoint) return
     let active = true
-    const params = field.depends_on ? { [field.depends_on]: parentValue } : {}
+    const paramKey = field.query?.trim() || field.depends_on
+    const params = paramKey && parentValue ? { [paramKey]: parentValue } : {}
     loadFieldOptions(field.endpoint, params)
       .then((rows) => {
         if (active) setLoaded({ key, options: rows, failed: false })
@@ -43,7 +47,7 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
     return () => {
       active = false
     }
-  }, [key, field.endpoint, field.depends_on, parentValue])
+  }, [key, field.endpoint, field.depends_on, field.query, parentValue])
 
   useEffect(() => {
     if (blocked) {
@@ -61,6 +65,20 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
   }, [blocked, ready, loaded, value, onChange])
 
   const hint = placeholder(blocked, loading, loaded.failed && ready, options.length)
+
+  if (field.code === 'documentation_type_ids') {
+    return (
+      <WorkDoneField
+        options={options}
+        value={Array.isArray(value) ? value : []}
+        disabled={disabled || blocked}
+        hint={hint}
+        invalid={invalid}
+        error={error}
+        onChange={onChange}
+      />
+    )
+  }
 
   if (field.type === 'multiple_list') {
     return (

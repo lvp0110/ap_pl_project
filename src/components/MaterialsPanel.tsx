@@ -23,6 +23,15 @@ function describeWrite(err: unknown, fallback: string): string {
   return message || fallback
 }
 
+function matchesQuery(item: CrmMaterial, query: string): boolean {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (!tokens.length) return true
+  const hay = [item.article ?? '', item.name, String(item.price), item.unit, item.comment ?? '']
+    .join(' ')
+    .toLowerCase()
+  return tokens.every((token) => hay.includes(token))
+}
+
 function describeImport(err: unknown): string {
   if (!(err instanceof ApiError)) {
     return err instanceof Error ? err.message : 'Не удалось загрузить прайс'
@@ -38,8 +47,10 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
   const [brand, setBrand] = useState('')
   const [materials, setMaterials] = useState<CrmMaterial[]>([])
   const [busy, setBusy] = useState(false)
+  const [query, setQuery] = useState('')
   const [notice, setNotice] = useState('')
   const [failure, setFailure] = useState('')
+  const [priceHidden, setPriceHidden] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -76,6 +87,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
 
   async function pickBrand(code: string) {
     setBrand(code)
+    setQuery('')
     setNotice('')
     await refresh(code)
   }
@@ -147,6 +159,8 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
 
   if (!loadedFromApi) return null
 
+  const visible = materials.filter((item) => matchesQuery(item, query))
+
   return (
     <section className="panel materials-panel">
       <h2>Материалы бренда</h2>
@@ -176,6 +190,14 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
           Обновить
         </button>
         <input
+          className="materials-search"
+          type="search"
+          value={query}
+          disabled={busy || !brand}
+          placeholder="Поиск по прайсу"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <input
           ref={fileInput}
           type="file"
           accept=".xlsx"
@@ -195,26 +217,48 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
       ) : (
         <>
           <div className="table-wrap">
-            <table className="grid">
+            <table className={priceHidden ? 'grid price-hidden' : 'grid'}>
+            <colgroup>
+              <col className="col-article" />
+              <col className="col-material" />
+              <col className="col-price" />
+              <col className="col-unit" />
+              <col className="col-comment" />
+              <col className="col-actions" />
+            </colgroup>
             <thead>
               <tr>
-                <th>Артикул</th>
-                <th>Материал</th>
-                <th>Цена</th>
-                <th>Ед.</th>
-                <th>Комментарий</th>
-                <th />
+                <th>{priceHidden ? null : 'Артикул'}</th>
+                <th>{priceHidden ? null : 'Материал'}</th>
+                <th>{priceHidden ? null : 'Цена'}</th>
+                <th>{priceHidden ? null : 'Ед.'}</th>
+                <th>{priceHidden ? null : 'Комментарий'}</th>
+                <th>
+                  <button
+                    type="button"
+                    className="ghost materials-hide"
+                    aria-expanded={!priceHidden}
+                    onClick={() => setPriceHidden((hidden) => !hidden)}
+                  >
+                    {priceHidden ? 'Показать' : 'Скрыть'}
+                  </button>
+                </th>
               </tr>
             </thead>
+            {!priceHidden && (
             <tbody>
-              {materials.length === 0 ? (
+              {materials.length === 0 || visible.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="empty-cell">
-                    {busy ? 'Загружаем материалы…' : 'У бренда нет материалов. Загрузите прайс Excel.'}
+                    {materials.length === 0
+                      ? busy
+                        ? 'Загружаем материалы…'
+                        : 'У бренда нет материалов. Загрузите прайс Excel.'
+                      : 'Ничего не найдено.'}
                   </td>
                 </tr>
               ) : (
-                materials.map((material) => (
+                visible.map((material) => (
                   <MaterialRow
                     key={`${material.id}:${material.name}:${material.price}`}
                     material={material}
@@ -226,9 +270,10 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
                 ))
               )}
             </tbody>
+            )}
           </table>
           </div>
-          <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />
+          {!priceHidden && <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />}
         </>
       )}
     </section>

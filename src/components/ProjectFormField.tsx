@@ -1,6 +1,9 @@
 import { Controller, type Control } from 'react-hook-form'
+import { SALE_PROBABILITIES, supplyYears } from '../data/defaults'
 import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
-import { asMaterials, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
+import { asMaterials, dateInputValue, type ProjectFieldValue, type ProjectFormValues } from '../lib/projects/formValues'
+import { formatMoney } from '../lib/projects/view'
+import { Dropdown } from './Dropdown'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
 
@@ -18,6 +21,10 @@ type Props = {
   savedMaterials: CrmProjectMaterial[]
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
+  embed?: boolean
+  displayValue?: number
+  onMaterialsTotal?: (value: number) => void
+  notesKey?: number | string
 }
 
 export function ProjectFormField({
@@ -32,20 +39,46 @@ export function ProjectFormField({
   savedMaterials,
   removedFiles,
   onRemovedFilesChange,
+  embed,
+  displayValue,
+  onMaterialsTotal,
+  notesKey,
 }: Props) {
+  if (field.code === 'documentation_type_ids') {
+    return (
+      <Controller
+        control={control}
+        name={field.code}
+        rules={{ required: field.required ? `${field.name}: заполните поле` : false }}
+        render={({ field: controlled }) => (
+          <ProjectListField
+            field={field}
+            value={toCodes(controlled.value)}
+            parentValue={parentValue}
+            disabled={busy || Boolean(field.disabled)}
+            invalid={Boolean(error)}
+            error={error}
+            onChange={controlled.onChange}
+          />
+        )}
+      />
+    )
+  }
+
   if (field.disabled) {
+    if (embed) return <input className="bi-input" value="" readOnly />
+    const text = field.code === 'potential_revenue' ? formatMoney(displayValue ?? 0) : '—'
     return (
       <label className="field field-readonly">
         <span className="field-label">{field.name}</span>
-        <input value="—" readOnly />
+        <input value={text} readOnly />
       </label>
     )
   }
 
   if (field.type === 'file') {
-    return (
-      <div className="field field-span">
-        <span className="field-label">{field.name}</span>
+    const body = (
+      <>
         {savedFiles.length > 0 && (
           <ul className="saved-files">
             {savedFiles.map((saved) => {
@@ -76,12 +109,20 @@ export function ProjectFormField({
         )}
         <input
           type="file"
+          className="file-input"
           multiple
           accept={field.accept && field.accept !== '*/*' ? field.accept : undefined}
           disabled={busy}
           onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
         />
         {files.length > 0 && <span className="field-hint">{files.map((f) => f.name).join(', ')}</span>}
+      </>
+    )
+    if (embed) return <div className="bi-file">{body}</div>
+    return (
+      <div className="field field-span field-file">
+        <span className="field-label">{field.name}</span>
+        {body}
       </div>
     )
   }
@@ -93,17 +134,25 @@ export function ProjectFormField({
       <Controller
         control={control}
         name={field.code}
-        render={({ field: controlled }) => (
-          <div className="field field-span">
-            <span className="field-label">{field.name}</span>
+        render={({ field: controlled }) => {
+          const editor = (
             <ProjectMaterialsField
               value={asMaterials(controlled.value)}
               saved={savedMaterials}
               disabled={busy}
               onChange={controlled.onChange}
+              onTotalsChange={onMaterialsTotal}
+              notesKey={notesKey}
             />
-          </div>
-        )}
+          )
+          if (embed) return editor
+          return (
+            <div className="field field-span">
+              <span className="field-label">{field.name}</span>
+              {editor}
+            </div>
+          )
+        }}
       />
     )
   }
@@ -113,16 +162,23 @@ export function ProjectFormField({
       control={control}
       name={field.code}
       rules={{ required: field.required ? `${field.name}: заполните поле` : false }}
-      render={({ field: controlled }) => (
-        <label className={`field${span ? ' field-span' : ''}${error ? ' field-invalid' : ''}`}>
-          <span className="field-label">
-            {field.name}
-            {field.required && ' *'}
-          </span>
-          {renderControl(field, controlled, parentValue, busy)}
-          {error && <span className="field-hint">{error}</span>}
-        </label>
-      )}
+      render={({ field: controlled }) =>
+        embed ? (
+          <div className={`bi-control${error ? ' field-invalid' : ''}`}>
+            {renderControl(field, controlled, parentValue, busy)}
+            {error && <span className="field-hint">{error}</span>}
+          </div>
+        ) : (
+          <label className={`field${span ? ' field-span' : ''}${error ? ' field-invalid' : ''}`}>
+            <span className="field-label">
+              {field.name}
+              {field.required && ' *'}
+            </span>
+            {renderControl(field, controlled, parentValue, busy)}
+            {error && <span className="field-hint">{error}</span>}
+          </label>
+        )
+      }
     />
   )
 }
@@ -145,6 +201,37 @@ function renderControl(
   busy: boolean,
 ) {
   const text = typeof controlled.value === 'string' ? controlled.value : ''
+
+  if (field.code === 'sale_probability') {
+    const current = text.replace(/%/g, '').trim()
+    const options = probabilityChoices(current)
+    return (
+      <Dropdown
+        value={current}
+        disabled={busy}
+        label="Вероятность поставки"
+        placeholder="%"
+        options={options.map((item) => ({ value: item, label: `${item}%` }))}
+        onBlur={controlled.onBlur}
+        onChange={controlled.onChange}
+      />
+    )
+  }
+
+  if (field.code === 'planned_supply_year') {
+    const years = yearChoices(text)
+    return (
+      <Dropdown
+        value={text}
+        disabled={busy}
+        label="Год поставки"
+        placeholder="год"
+        options={years.map((year) => ({ value: year, label: year }))}
+        onBlur={controlled.onBlur}
+        onChange={controlled.onChange}
+      />
+    )
+  }
 
   switch (field.type) {
     case 'list':
@@ -182,7 +269,7 @@ function renderControl(
       return (
         <input
           type="date"
-          value={text}
+          value={dateInputValue(text)}
           disabled={busy}
           onBlur={controlled.onBlur}
           onChange={(e) => controlled.onChange(e.target.value)}
@@ -190,19 +277,14 @@ function renderControl(
       )
     case 'quarter':
       return (
-        <select
+        <Dropdown
           value={text}
           disabled={busy}
+          placeholder="квартал"
+          options={QUARTERS.map((quarter) => ({ value: quarter, label: `${quarter} квартал` }))}
           onBlur={controlled.onBlur}
-          onChange={(e) => controlled.onChange(e.target.value)}
-        >
-          <option value="">—</option>
-          {QUARTERS.map((quarter) => (
-            <option key={quarter} value={quarter}>
-              {quarter} квартал
-            </option>
-          ))}
-        </select>
+          onChange={controlled.onChange}
+        />
       )
     default:
       return (
@@ -214,4 +296,16 @@ function renderControl(
         />
       )
   }
+}
+
+function probabilityChoices(current: string): string[] {
+  const options: string[] = [...SALE_PROBABILITIES]
+  if (current && !options.includes(current)) options.unshift(current)
+  return options
+}
+
+function yearChoices(current: string): string[] {
+  const years = supplyYears()
+  if (current && !years.includes(current)) return [current, ...years]
+  return years
 }

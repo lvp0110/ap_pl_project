@@ -8,13 +8,18 @@ export function emptyMaterial(): MaterialLine {
 
 export const MATERIAL_ROWS = 10
 
-/** Поля бланка, которых нет в CRM references: календарь и служебные да/нет. */
+export const SALE_PROBABILITIES = ['10', '30', '50', '70', '90'] as const
+
+export function supplyYears(fromYear = new Date().getFullYear(), extraYears = 20): string[] {
+  return Array.from({ length: extraYears + 1 }, (_, i) => String(fromYear + i))
+}
+
+/** Поля бланка, которых нет в CRM references: календарь. */
 const FORM_LISTS: Pick<
   Catalogs,
-  'probabilities' | 'yesNo' | 'reservationStatuses' | 'months' | 'years' | 'deliveryYears' | 'days'
+  'probabilities' | 'reservationStatuses' | 'months' | 'years' | 'deliveryYears' | 'days'
 > = {
   probabilities: ['10%', '30%', '50%', '70%', '90%'],
-  yesNo: ['Да', 'Нет', 'Не требуется'],
   reservationStatuses: ['Зарезервировано', 'Отказ', 'На рассмотрении'],
   months: [
     'Январь',
@@ -31,7 +36,7 @@ const FORM_LISTS: Pick<
     'Декабрь',
   ],
   years: Array.from({ length: 16 }, (_, i) => String(2020 + i)),
-  deliveryYears: Array.from({ length: 11 }, (_, i) => String(2020 + i)),
+  deliveryYears: supplyYears(),
   days: Array.from({ length: 31 }, (_, i) => String(i + 1)),
 }
 
@@ -86,6 +91,7 @@ export function emptyProject(id = ''): Project {
     materials: Array.from({ length: MATERIAL_ROWS }, () => emptyMaterial()),
     updatedAt: '',
     updatedBy: '',
+    partnerNote: '',
   }
 }
 
@@ -96,8 +102,8 @@ export const CONTACT_ROWS: Array<{
   label: string
   required?: boolean
 }> = [
-  { key: 'customer', label: 'Заказчик / инвестор' },
-  { key: 'designer', label: 'Проектировщик / архитектор' },
+  { key: 'customer', label: 'Заказчик / Инвестор' },
+  { key: 'designer', label: 'Проектировщик (архитектор)' },
   { key: 'gc', label: 'Генподрядчик' },
   { key: 'sub', label: 'Субподрядчик' },
 ]

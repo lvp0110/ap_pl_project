@@ -1,21 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { ProjectsPage } from '../components/ProjectsPage'
-import { useCrm } from '../app/hooks'
-import { listProjects, loadProjectFilters } from '../lib/api/projects'
-import type { CrmFilter, CrmProject } from '../lib/api/projectTypes'
-
-const SERVER_FILTERS = new Set([
-  'region_id',
-  'stage_id',
-  'segment_id',
-  'sg_manager_id',
-  'ag_manager_id',
-  'information_source_id',
-  'status',
-  'priority_id',
-  'support_status_id',
-])
+import { useBlanks, useCrm } from '../app/hooks'
+import { listProjects, loadFieldOptions, loadProjectFilters, loadProjectForm } from '../lib/api/projects'
+import type { CrmFilter, CrmFormField, CrmOption, CrmProject } from '../lib/api/projectTypes'
+import { isServerFilter } from '../lib/projects/listCells'
 
 type Loaded = {
   key: string
@@ -25,29 +14,39 @@ type Loaded = {
 
 export function ProjectsListPage() {
   const crm = useCrm()
+  const blanks = useBlanks()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [filters, setFilters] = useState<CrmFilter[]>([])
+  const [formFields, setFormFields] = useState<CrmFormField[]>([])
+  const [employees, setEmployees] = useState<CrmOption[]>([])
   const [loaded, setLoaded] = useState<Loaded>({ key: '', rows: [], failure: '' })
   const [reloadAt, setReloadAt] = useState(0)
 
   const selectedKey = useMemo(() => {
     const picked: Record<string, string> = {}
     params.forEach((value, key) => {
-      if (SERVER_FILTERS.has(key) && value) picked[key] = value
+      if (value) picked[key] = value
     })
     return JSON.stringify(picked)
   }, [params])
 
   const selected = useMemo(() => JSON.parse(selectedKey) as Record<string, string>, [selectedKey])
+  const serverKey = useMemo(
+    () =>
+      JSON.stringify(
+        Object.fromEntries(Object.entries(selected).filter(([code]) => isServerFilter(code))),
+      ),
+    [selected],
+  )
   const signed = Boolean(crm.user)
-  const requestKey = signed ? `${selectedKey}|${reloadAt}` : ''
+  const requestKey = signed ? `${serverKey}|${reloadAt}` : ''
   const ready = Boolean(requestKey) && loaded.key === requestKey
 
   useEffect(() => {
     if (!requestKey) return
     let active = true
-    listProjects(JSON.parse(selectedKey) as Record<string, string>)
+    listProjects(JSON.parse(serverKey) as Record<string, string>)
       .then((rows) => {
         if (active) setLoaded({ key: requestKey, rows, failure: '' })
       })
@@ -59,7 +58,7 @@ export function ProjectsListPage() {
     return () => {
       active = false
     }
-  }, [requestKey, selectedKey])
+  }, [requestKey, serverKey])
 
   useEffect(() => {
     if (!signed) return
@@ -70,6 +69,20 @@ export function ProjectsListPage() {
       })
       .catch(() => {
         if (active) setFilters([])
+      })
+    loadProjectForm()
+      .then((form) => {
+        if (active) setFormFields(form.fields)
+      })
+      .catch(() => {
+        if (active) setFormFields([])
+      })
+    loadFieldOptions('/crm/project-options/employees')
+      .then((rows) => {
+        if (active) setEmployees(rows)
+      })
+      .catch(() => {
+        if (active) setEmployees([])
       })
     return () => {
       active = false
@@ -89,28 +102,36 @@ export function ProjectsListPage() {
   )
 
   return (
-    <ProjectsPage
-      projects={ready ? loaded.rows : []}
-      references={crm.references}
-      filters={signed ? filters : []}
-      selected={selected}
-      loadedFromApi={signed}
-      busy={crm.busy || (signed && !ready)}
-      failure={loaded.failure}
-      onFilterChange={(code, value) => update({ [code]: value })}
-      onReset={() => setParams({})}
-      onCreate={() => {
-        if (!signed) {
-          crm.setNotice('Войдите в API ConstrTodo, чтобы завести проект.')
-          return
-        }
-        navigate('/projects/new')
-      }}
-      onOpen={(project) => navigate(`/projects/${project.id}`)}
-      onRefresh={() => {
-        setReloadAt(Date.now())
-        void crm.reload()
-      }}
-    />
+    <>
+      <ProjectsPage
+        projects={ready ? loaded.rows : []}
+        fields={formFields}
+        lookups={{
+          references: crm.references,
+          sgManagers: crm.sgManagers,
+          employees,
+          filters,
+        }}
+        filters={signed ? filters : []}
+        selected={selected}
+        loadedFromApi={signed}
+        busy={crm.busy || (signed && !ready)}
+        failure={loaded.failure}
+        onFilterChange={(code, value) => update({ [code]: value })}
+        onReset={() => setParams({})}
+        onCreate={() => {
+          if (!signed) {
+            blanks.openNewBlank()
+            return
+          }
+          navigate('/projects/new')
+        }}
+        onOpen={(project) => navigate(`/projects/${project.id}`)}
+        onRefresh={() => {
+          setReloadAt(Date.now())
+          void crm.reload()
+        }}
+      />
+    </>
   )
 }

@@ -1,72 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Navigate, useNavigate, useParams } from 'react-router'
-import { ProjectForm } from '../components/ProjectForm'
+import { useEffect } from 'react'
+import { Navigate, useParams } from 'react-router'
 import { useCrm } from '../app/hooks'
-import { getProject } from '../lib/api/projects'
-import type { CrmProject } from '../lib/api/projectTypes'
-
-type Loaded = {
-  key: string
-  project: CrmProject | null
-  failure: string
-}
 
 export function ProjectEditPage() {
   const crm = useCrm()
-  const navigate = useNavigate()
   const { id } = useParams()
-  const [loaded, setLoaded] = useState<Loaded>({ key: '', project: null, failure: '' })
-
-  const key = crm.user && id ? id : ''
-  const ready = Boolean(key) && loaded.key === key
+  const projectId = Number(id)
 
   useEffect(() => {
-    if (!key) return
-    let active = true
-    getProject(Number(key))
-      .then((project) => {
-        if (active) setLoaded({ key, project, failure: '' })
-      })
-      .catch((err: unknown) => {
-        if (!active) return
-        const failure = err instanceof Error ? err.message : 'Не удалось загрузить проект'
-        setLoaded({ key, project: null, failure })
-      })
-    return () => {
-      active = false
-    }
-  }, [key])
+    if (!crm.user || !Number.isFinite(projectId)) return
+    crm.openProjectEditor(projectId)
+  }, [crm.user, crm.openProjectEditor, projectId])
 
   if (crm.ready && !crm.user) return <Navigate to="/projects" replace />
-
-  if (!ready) {
-    return (
-      <div className="page">
-        <p className="hint">Загружаем проект…</p>
-      </div>
-    )
-  }
-
-  if (!loaded.project) {
-    return (
-      <div className="page">
-        <p className="hint field-invalid">{loaded.failure || 'Проект не найден.'}</p>
-        <button type="button" className="ghost" onClick={() => navigate('/projects')}>
-          К списку
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <ProjectForm
-      project={loaded.project}
-      onSaved={(project) => {
-        crm.rememberProject(project)
-        crm.setNotice(`Проект «${project.name}» сохранён.`)
-        navigate(`/projects/${project.id}`)
-      }}
-      onCancel={() => navigate(`/projects/${loaded.project?.id ?? ''}`)}
-    />
-  )
+  return null
 }

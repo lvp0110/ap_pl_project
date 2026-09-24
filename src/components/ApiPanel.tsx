@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { userDisplayName } from '../lib/api/crm'
 import type { AuthUser } from '../lib/api/types'
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const name = user ? userDisplayName(user) : ''
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,11 +25,8 @@ export function ApiPanel({ user, busy, onLogin, onLogout, onReload }: Props) {
       <h3>API ConstrTodo</h3>
       {user ? (
         <>
-          <p>
-            Сессия: {user.email}
-            {user.role_type ? ` · ${user.role_type}` : ''}
-          </p>
-          <p>Справочники — из API. Прайс материалов — из Excel. Бланки пока в этом браузере.</p>
+          {name ? <p>{name}</p> : null}
+          <p>{user.email}</p>
           <div className="sidebar-actions">
             <button type="button" className="ghost" disabled={busy} onClick={() => void onReload()}>
               Обновить из API

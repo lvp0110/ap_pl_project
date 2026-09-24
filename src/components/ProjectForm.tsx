@@ -1,26 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { createProject, loadProjectForm, updateProject } from '../lib/api/projects'
-import type {
-  CrmFormField,
-  CrmProject,
-  CrmProjectAccess,
-  CrmProjectFile,
-  CrmProjectMaterial,
+import { createProject, loadProjectForm, submitProject, updateProject } from '../lib/api/projects'
+import {
+  type CrmFormField,
+  type CrmProject,
+  type CrmProjectFile,
+  type CrmProjectMaterial,
 } from '../lib/api/projectTypes'
 import {
   defaultValues,
   initialValues,
+  isFormComplete,
   parentCodes,
   toPatch,
   toPayload,
   type ProjectFormValues,
 } from '../lib/projects/formValues'
-import { ProjectFormField } from './ProjectFormField'
+import { adoptSheetNotes } from '../lib/projects/sheetNotes'
+import { ProjectBlankSheet } from './ProjectBlankSheet'
 
 type Props = {
   project?: CrmProject
-  onSaved: (project: CrmProject) => void
+  onSaved: (project: CrmProject, asDraft?: boolean) => void
   onCancel: () => void
 }
 
@@ -31,13 +32,14 @@ const NO_MATERIALS: CrmProjectMaterial[] = []
 
 export function ProjectForm({ project, onSaved, onCancel }: Props) {
   const [fields, setFields] = useState<CrmFormField[]>([])
-  const [access, setAccess] = useState<CrmProjectAccess | null>(null)
+  const [savedId, setSavedId] = useState<number | undefined>(project?.id)
   const [documents, setDocuments] = useState<File[]>([])
   const [removedFiles, setRemovedFiles] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [failure, setFailure] = useState('')
   const [initial, setInitial] = useState<ProjectFormValues>({})
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   const {
     control,
@@ -45,11 +47,19 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     reset,
     setError,
     clearErrors,
+    getValues,
     formState: { errors },
   } = useForm<ProjectFormValues>({ defaultValues: {} })
 
   const parents = useMemo(() => parentCodes(fields), [fields])
   const parentValues = useWatch({ control, name: parents })
+  const allValues = useWatch({ control })
+  const fileCount = (project?.files.length ?? 0) - removedFiles.length + documents.length
+  const complete = isFormComplete(
+    fields,
+    (allValues as ProjectFormValues | undefined) ?? initial,
+    fileCount,
+  )
 
   useEffect(() => {
     let active = true
@@ -57,7 +67,6 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       .then((form) => {
         if (!active) return
         setFields(form.fields)
-        setAccess(form.access)
         const start = project ? initialValues(form.fields, project) : defaultValues(form.fields)
         setInitial(start)
         reset(start)
@@ -73,6 +82,13 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     }
   }, [reset, project])
 
+  const watched = (allValues as ProjectFormValues | undefined) ?? {}
+  const dirty = useMemo(() => {
+    if (!fields.length) return false
+    if (documents.length > 0 || removedFiles.length > 0) return true
+    return Object.keys(toPatch(fields, initial, watched)).length > 0
+  }, [fields, documents.length, removedFiles, initial, watched])
+
   const selected = useMemo(() => {
     const map: Record<string, string> = {}
     parents.forEach((code, index) => {
@@ -82,7 +98,59 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     return map
   }, [parents, parentValues])
 
+  function draftValues(entered: ProjectFormValues): ProjectFormValues {
+    const year = String(entered[SUPPLY_YEAR] ?? '').trim()
+    const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
+    if (Boolean(year) === Boolean(quarter)) return entered
+    return { ...entered, [SUPPLY_YEAR]: '', [SUPPLY_QUARTER]: '' }
+  }
+
+  async function store(entered: ProjectFormValues, asDraft: boolean) {
+    const id = savedId ?? project?.id
+    const values = id ? toPatch(fields, initial, entered) : toPayload(fields, entered)
+    if (removedFiles.length) values.remove_file_ids = removedFiles
+    if (!id && asDraft && (typeof values.name !== 'string' || !String(values.name).trim())) {
+      values.name = 'Черновик'
+    }
+
+    const nothing = !Object.keys(values).length && !documents.length
+    if (nothing) {
+      setFailure('Изменений нет.')
+      return
+    }
+
+    setSaving(true)
+    setFailure('')
+    try {
+      let saved = project
+      let nextId = id
+      if (!nextId) {
+        saved = await createProject(values, documents)
+        nextId = saved.id
+        setSavedId(nextId)
+        adoptSheetNotes(nextId)
+      } else if (!nothing) {
+        saved = await updateProject(nextId, values, documents)
+      }
+      if (asDraft) {
+        if (saved) onSaved(saved, true)
+        return
+      }
+      const wasSubmitted = project?.document_status?.toLowerCase() === 'submitted'
+      if (!wasSubmitted) {
+        if (!nextId) return
+        saved = await submitProject(nextId)
+      }
+      if (saved) onSaved(saved)
+    } catch (err) {
+      setFailure(err instanceof Error ? err.message : asDraft ? 'Не удалось сохранить черновик' : 'Не удалось сохранить проект')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function submit(entered: ProjectFormValues) {
+    if (!dirty || !complete) return
     const year = String(entered[SUPPLY_YEAR] ?? '').trim()
     const quarter = String(entered[SUPPLY_QUARTER] ?? '').trim()
     if (Boolean(year) !== Boolean(quarter)) {
@@ -91,26 +159,20 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
       return
     }
     clearErrors([SUPPLY_YEAR, SUPPLY_QUARTER])
+    await store(entered, false)
+  }
 
-    setSaving(true)
-    setFailure('')
-    try {
-      if (project) {
-        const patch = toPatch(fields, initial, entered)
-        if (removedFiles.length) patch.remove_file_ids = removedFiles
-        if (!Object.keys(patch).length && !documents.length) {
-          setFailure('Изменений нет.')
-          return
-        }
-        onSaved(await updateProject(project.id, patch, documents))
-        return
-      }
-      onSaved(await createProject(toPayload(fields, entered), documents))
-    } catch (err) {
-      setFailure(err instanceof Error ? err.message : 'Не удалось сохранить проект')
-    } finally {
-      setSaving(false)
+  function persistDraft() {
+    if (!dirty) return
+    return store(draftValues(getValues()), true)
+  }
+
+  function requestLeave() {
+    if (!dirty) {
+      onCancel()
+      return
     }
+    setConfirmLeave(true)
   }
 
   if (loading) {
@@ -133,45 +195,57 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
   }
 
   return (
-    <div className="page">
+    <div className="page bi-page">
       <header className="page-head">
         <div>
-          <p className="eyebrow">CRM ConstrTodo{project ? ` · проект № ${project.id}` : ''}</p>
-          <h1>{project ? project.name || 'Без названия' : 'Новый проект'}</h1>
-          <p className="lede">
-            Форма приходит с сервера: {fields.length} полей, уровень доступа «{access}».
-          </p>
+          <p className="eyebrow">Бланк информирования{project ? ` · проект № ${project.id}` : ''}</p>
+          <h1>{project ? project.name || 'Без названия' : 'Заполнить бланк'}</h1>
         </div>
       </header>
 
       {failure && <p className="hint field-invalid">{failure}</p>}
 
-      <form className="project-form" onSubmit={handleSubmit(submit)}>
-        <div className="project-form-grid">
-          {fields.map((field) => (
-            <ProjectFormField
-              key={field.code}
-              field={field}
-              control={control}
-              parentValue={field.depends_on ? (selected[field.depends_on] ?? '') : ''}
-              busy={saving}
-              error={errors[field.code]?.message}
-              files={documents}
-              onFilesChange={setDocuments}
-              savedFiles={project?.files ?? NO_FILES}
-              savedMaterials={project?.materials ?? NO_MATERIALS}
-              removedFiles={removedFiles}
-              onRemovedFilesChange={setRemovedFiles}
-            />
-          ))}
-        </div>
+      <form className="project-form" onSubmit={handleSubmit((entered) => submit(entered))}>
+        <ProjectBlankSheet
+          fields={fields}
+          control={control}
+          selected={selected}
+          errors={errors}
+          busy={saving}
+          files={documents}
+          onFilesChange={setDocuments}
+          savedFiles={project?.files ?? NO_FILES}
+          savedMaterials={project?.materials ?? NO_MATERIALS}
+          removedFiles={removedFiles}
+          onRemovedFilesChange={setRemovedFiles}
+          notesKey={project?.id ?? 'new'}
+        />
 
         <div className="project-form-actions">
-          <button type="submit" className="primary" disabled={saving}>
-            {saving ? 'Сохраняем…' : project ? 'Сохранить' : 'Создать проект'}
+          {confirmLeave && (
+            <p className="unsaved-warning">
+              Есть несохранённые данные. Закрыть бланк без сохранения?
+              <button type="button" className="ghost" onClick={() => setConfirmLeave(false)}>
+                Остаться
+              </button>
+              <button type="button" className="danger" onClick={onCancel}>
+                Закрыть
+              </button>
+            </p>
+          )}
+          <button type="button" className="ghost" disabled={saving} onClick={requestLeave}>
+            К списку
           </button>
-          <button type="button" className="ghost" disabled={saving} onClick={onCancel}>
-            Отмена
+          <button
+            type="button"
+            className={complete ? 'ghost' : 'primary'}
+            disabled={!dirty || saving}
+            onClick={() => void persistDraft()}
+          >
+            {saving ? 'Сохраняем…' : 'Сохранить черновик'}
+          </button>
+          <button type="submit" className={complete ? 'primary' : 'ghost'} disabled={!dirty || !complete || saving}>
+            {saving ? 'Сохраняем…' : 'Сохранить бланк'}
           </button>
         </div>
       </form>

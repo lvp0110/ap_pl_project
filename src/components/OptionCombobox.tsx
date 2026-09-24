@@ -1,5 +1,5 @@
 import { Combobox } from '@base-ui-components/react/combobox'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { CrmOption } from '../lib/api/projectTypes'
 
 type Props = {
@@ -16,6 +16,7 @@ export function OptionCombobox({ options, value, disabled, placeholder, onChange
     () => new Map(options.map((option) => [option.code, option.name])),
     [options],
   )
+  const anchorRef = useRef<HTMLDivElement>(null)
 
   return (
     <Combobox.Root
@@ -25,7 +26,7 @@ export function OptionCombobox({ options, value, disabled, placeholder, onChange
       itemToStringLabel={(code: string) => labels.get(code) ?? code}
       onValueChange={(next: string | null) => onChange(next ?? '')}
     >
-      <div className={`autocomplete-control${disabled ? ' disabled' : ''}`}>
+      <div ref={anchorRef} className={`autocomplete-control${disabled ? ' disabled' : ''}`}>
         <Combobox.Input placeholder={placeholder} className="autocomplete-input" />
         {value && (
           <Combobox.Clear className="autocomplete-tag-remove" aria-label="Очистить">
@@ -35,12 +36,19 @@ export function OptionCombobox({ options, value, disabled, placeholder, onChange
       </div>
 
       <Combobox.Portal>
-        <Combobox.Positioner sideOffset={4} className="autocomplete-positioner">
-          <Combobox.Popup className="autocomplete-listbox">
-            <Combobox.Empty className="autocomplete-empty">Ничего не найдено</Combobox.Empty>
+        <Combobox.Positioner
+          anchor={anchorRef}
+          side="bottom"
+          align="start"
+          sideOffset={2}
+          collisionPadding={8}
+          className="dropdown-positioner"
+        >
+          <Combobox.Popup className="dropdown-listbox">
+            <Combobox.Empty className="dropdown-empty">Ничего не найдено</Combobox.Empty>
             <Combobox.List>
               {(code: string) => (
-                <Combobox.Item key={code} value={code} className="autocomplete-option">
+                <Combobox.Item key={code} value={code} className="dropdown-option">
                   {labels.get(code) ?? code}
                 </Combobox.Item>
               )}

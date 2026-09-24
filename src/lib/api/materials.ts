@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, asList } from './client'
 import type { CrmMaterial } from './types'
 
 export type MaterialImportResult = {
@@ -27,8 +27,8 @@ export async function listMaterials(brandCode: string, includeArchived = false):
   if (brandCode) params.set('brand_code', brandCode)
   if (includeArchived) params.set('include_archived', 'true')
   const query = params.toString()
-  const data = await apiRequest<CrmMaterial[]>(`/crm/materials${query ? `?${query}` : ''}`)
-  return Array.isArray(data) ? data : []
+  const data = await apiRequest<unknown>(`/crm/materials${query ? `?${query}` : ''}`)
+  return asList(data).filter((row): row is CrmMaterial => Boolean(row) && typeof row === 'object')
 }
 
 export async function createMaterial(draft: MaterialDraft): Promise<CrmMaterial> {

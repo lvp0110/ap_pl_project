@@ -1,5 +1,7 @@
-import type { CrmFormField, CrmProject } from '../lib/api/projectTypes'
+import { Fragment } from 'react'
+import type { CrmFormField, CrmProject, CrmProjectMaterial } from '../lib/api/projectTypes'
 import { readValue } from '../lib/projects/formValues'
+import { loadSheetNotes, materialNote } from '../lib/projects/sheetNotes'
 import { formatDate, formatMoney } from '../lib/projects/view'
 import { OptionValue } from './OptionValue'
 
@@ -27,43 +29,44 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
 
   if (field.type === 'materials') {
     if (!project.materials.length) return <span className="value-empty">—</span>
+    const groups = groupMaterials(project.materials)
+    const notes = loadSheetNotes(project.id).materials
     return (
-      <div className="table-wrap">
-        <table className="grid">
-          <thead>
-            <tr>
-              <th>Бренд</th>
-              <th>Материал</th>
-              <th>Артикул</th>
-              <th>Комментарий</th>
-              <th>Кол-во</th>
-              <th>Ед.</th>
-              <th>Цена</th>
-              <th>Сумма</th>
-            </tr>
-          </thead>
-          <tbody>
-            {project.materials.map((line) => (
-              <tr key={line.id}>
-                <td>{line.material.brand?.name || '—'}</td>
-                <td className="name-cell">{line.material.name}</td>
-                <td>{line.material.article || '—'}</td>
-                <td>{line.material.comment || '—'}</td>
-                <td>{line.quantity}</td>
-                <td>{line.material.unit}</td>
-                <td>{formatMoney(line.unit_price)}</td>
-                <td>{formatMoney(line.line_amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={7}>Итого</td>
-              <td>{formatMoney(project.materials.reduce((sum, line) => sum + line.line_amount, 0))}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      <table className="bi-grid bi-materials-table">
+        <thead>
+          <tr>
+            <th>Наименование</th>
+            <th>Ед. измерения</th>
+            <th>Количество</th>
+            <th>Цвет</th>
+            <th>Примечание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((group) => (
+            <Fragment key={group.key}>
+              {group.brand ? (
+                <tr className="bi-mat-group">
+                  <td>{group.brand}</td>
+                  <td />
+                  <td />
+                  <td />
+                  <td />
+                </tr>
+              ) : null}
+              {group.lines.map((line) => (
+                <tr key={line.id}>
+                  <td>{line.material.name}</td>
+                  <td>{line.material.unit}</td>
+                  <td>{line.quantity || ''}</td>
+                  <td />
+                  <td>{materialNote(notes, line.material.id, line.material.comment || '')}</td>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
     )
   }
 
@@ -86,8 +89,23 @@ export function ProjectFieldValue({ field, project, parentValue }: Props) {
     case 'quarter':
       return <span>{text} квартал</span>
     case 'number':
+      if (field.code === 'sale_probability') return <span>{text}%</span>
       return <span>{field.code === 'potential_revenue' ? formatMoney(Number(text)) : text}</span>
     default:
       return <span>{text}</span>
   }
+}
+
+function groupMaterials(lines: CrmProjectMaterial[]) {
+  const groups: { key: string; brand: string; lines: CrmProjectMaterial[] }[] = []
+  for (const line of lines) {
+    const brand = line.material.brand?.name || ''
+    const last = groups.at(-1)
+    if (!last || last.brand !== brand) {
+      groups.push({ key: `${brand}:${line.id}`, brand, lines: [line] })
+    } else {
+      last.lines.push(line)
+    }
+  }
+  return groups
 }

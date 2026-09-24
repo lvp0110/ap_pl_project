@@ -68,8 +68,34 @@ export function readValue(project: CrmProject, field: CrmFormField): ProjectFiel
   if (raw === null || raw === undefined) return field.type === 'multiple_list' ? [] : ''
   if (Array.isArray(raw)) return raw.map((item) => String(item))
   if (typeof raw === 'number') return raw === 0 && field.disabled ? '' : String(raw)
-  if (typeof raw === 'string') return raw
+  if (typeof raw === 'string') return field.type === 'date' ? dateInputValue(raw) : raw
   return ''
+}
+
+export function dateInputValue(value: string): string {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : ''
+}
+
+export function isFormComplete(
+  fields: CrmFormField[],
+  values: ProjectFormValues,
+  fileCount = 0,
+): boolean {
+  const required = fields.filter((field) => field.required && !field.disabled)
+  if (!required.length) {
+    return Boolean(values.stage_id && values.segment_id && values.region_id && values.sg_manager_id)
+  }
+
+  return required.every((field) => {
+    if (field.type === 'file') return fileCount > 0
+    const value = values[field.code]
+    if (field.type === 'materials') {
+      return asMaterials(value).some((line) => line.material_id > 0 && line.quantity > 0)
+    }
+    if (Array.isArray(value)) return value.length > 0
+    return typeof value === 'string' && value.trim() !== ''
+  })
 }
 
 export function initialValues(fields: CrmFormField[], project: CrmProject): ProjectFormValues {

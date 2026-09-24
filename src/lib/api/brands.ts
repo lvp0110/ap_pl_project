@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, asList } from './client'
 import type { CrmOption } from './projectTypes'
 
 type BrandReference = {
@@ -7,9 +7,11 @@ type BrandReference = {
 }
 
 export async function listBrands(): Promise<CrmOption[]> {
-  const data = await apiRequest<BrandReference[]>('/content/references/brand?limit=500')
-  if (!Array.isArray(data)) return []
-  return data
-    .map((row) => ({ code: String(row.code ?? ''), name: row.name ?? '' }))
+  const data = await apiRequest<unknown>('/content/references/brand?limit=500')
+  return asList(data)
+    .map((row) => {
+      const item = row as BrandReference
+      return { code: String(item.code ?? ''), name: item.name ?? '' }
+    })
     .filter((option) => option.code !== '')
 }
