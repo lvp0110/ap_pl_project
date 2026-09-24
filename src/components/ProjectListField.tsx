@@ -3,6 +3,7 @@ import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmFormField, CrmOption } from '../lib/api/projectTypes'
 import { OptionAutocomplete } from './OptionAutocomplete'
 import { OptionCombobox } from './OptionCombobox'
+import { WorkDoneField } from './WorkDoneField'
 
 type Props = {
   field: CrmFormField
@@ -62,6 +63,18 @@ export function ProjectListField({ field, value, parentValue, disabled, onChange
   }, [blocked, ready, loaded, value, onChange])
 
   const hint = placeholder(blocked, loading, loaded.failed && ready, options.length)
+
+  if (field.code === 'documentation_type_ids') {
+    return (
+      <WorkDoneField
+        options={options}
+        value={Array.isArray(value) ? value : []}
+        disabled={disabled || blocked}
+        hint={hint}
+        onChange={onChange}
+      />
+    )
+  }
 
   if (field.type === 'multiple_list') {
     return (

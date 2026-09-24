@@ -14,13 +14,12 @@ export function supplyYears(fromYear = new Date().getFullYear(), extraYears = 20
   return Array.from({ length: extraYears + 1 }, (_, i) => String(fromYear + i))
 }
 
-/** Поля бланка, которых нет в CRM references: календарь и служебные да/нет. */
+/** Поля бланка, которых нет в CRM references: календарь. */
 const FORM_LISTS: Pick<
   Catalogs,
-  'probabilities' | 'yesNo' | 'reservationStatuses' | 'months' | 'years' | 'deliveryYears' | 'days'
+  'probabilities' | 'reservationStatuses' | 'months' | 'years' | 'deliveryYears' | 'days'
 > = {
   probabilities: ['10%', '30%', '50%', '70%', '90%'],
-  yesNo: ['Да', 'Нет', 'Не требуется'],
   reservationStatuses: ['Зарезервировано', 'Отказ', 'На рассмотрении'],
   months: [
     'Январь',

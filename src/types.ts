@@ -66,7 +66,6 @@ export type Catalogs = {
   purposes: string[]
   stages: string[]
   probabilities: string[]
-  yesNo: string[]
   units: string[]
   reservationStatuses: string[]
   months: string[]

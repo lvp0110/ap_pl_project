@@ -1735,6 +1735,87 @@ legend {
   padding: 2px 4px;
 }
 
+.work-pick-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.work-pick-values {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 0 4px 6px;
+}
+
+.work-pick-empty {
+  color: #757575;
+  font-size: 14px;
+}
+
+.work-pick-toggle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 34px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.bi-fill .work-pick-toggle input[type='checkbox'],
+.bi-control .work-pick-toggle input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: #222;
+  cursor: pointer;
+}
+
+.work-pick-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+  border-top: 1px dotted #7f7f7f;
+  background: #fff;
+}
+
+.work-pick-list li {
+  border-bottom: 1px dotted #e0e0e0;
+}
+
+.work-pick-list li:last-child {
+  border-bottom: 0;
+}
+
+.work-pick-list button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 7px 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.work-pick-list button:hover:not(:disabled) {
+  background: #fff2cc;
+}
+
+.work-pick-list .work-pick-empty {
+  display: block;
+  padding: 7px 10px;
+}
+
 .bi-pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));

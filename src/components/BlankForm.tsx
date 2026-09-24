@@ -4,6 +4,8 @@ import { priceNote } from '../lib/excel'
 import { collectBlankErrors } from '../lib/validate'
 import type { Catalogs, Contact, MaterialLine, PriceItem, Project } from '../types'
 
+const YES_NO_OPTIONS = ['Да', 'Нет', 'Не требуется']
+
 type Props = {
   project: Project
   origin: Project
@@ -364,21 +366,21 @@ export function BlankForm({
                   <Row label="Проведение презентации, переговоров" invalid={invalid('presentation')}>
                     <Select
                       value={project.presentation}
-                      options={catalogs.yesNo}
+                      options={YES_NO_OPTIONS}
                       onChange={(presentation) => patch({ presentation })}
                     />
                   </Row>
                   <Row label="Вариантное проектирование" invalid={invalid('variantDesign')}>
                     <Select
                       value={project.variantDesign}
-                      options={catalogs.yesNo}
+                      options={YES_NO_OPTIONS}
                       onChange={(variantDesign) => patch({ variantDesign })}
                     />
                   </Row>
                   <Row label="Изготовление спецификации" invalid={invalid('specification')}>
                     <Select
                       value={project.specification}
-                      options={catalogs.yesNo}
+                      options={YES_NO_OPTIONS}
                       onChange={(specification) => patch({ specification })}
                     />
                   </Row>
@@ -480,7 +482,7 @@ export function BlankForm({
                 <span className="field-label">Изготовление монтажной схемы</span>
                 <Select
                   value={project.installScheme}
-                  options={catalogs.yesNo}
+                  options={YES_NO_OPTIONS}
                   onChange={(installScheme) => patch({ installScheme })}
                 />
               </label>
