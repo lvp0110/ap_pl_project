@@ -107,14 +107,28 @@ export function ProjectFormField({
             })}
           </ul>
         )}
-        <input
-          type="file"
-          className="file-input"
-          multiple
-          accept={field.accept && field.accept !== '*/*' ? field.accept : undefined}
-          disabled={busy}
-          onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
-        />
+        {embed ? (
+          <input
+            type="file"
+            className="file-input"
+            multiple
+            accept={field.accept && field.accept !== '*/*' ? field.accept : undefined}
+            disabled={busy}
+            onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
+          />
+        ) : (
+          <label className="file-pick">
+            <input
+              type="file"
+              className="file-input"
+              multiple
+              accept={field.accept && field.accept !== '*/*' ? field.accept : undefined}
+              disabled={busy}
+              onChange={(e) => onFilesChange([...(e.target.files ?? [])])}
+            />
+            Выбрать файл
+          </label>
+        )}
         {files.length > 0 && <span className="field-hint">{files.map((f) => f.name).join(', ')}</span>}
       </>
     )

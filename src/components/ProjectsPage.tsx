@@ -49,7 +49,7 @@ const SHORT_LABEL: Record<string, string> = {
   [ROW_ID_FILTER]: '№',
   [CHECK_FILTER]: 'Проверка',
   information_form_date: 'Дата',
-  comment: 'Примечание',
+  comment: 'Комментарий',
   information_source_id: 'Источник',
   name: 'Проект',
   address: 'Адрес',

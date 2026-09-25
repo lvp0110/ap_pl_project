@@ -7,10 +7,12 @@ import {
   type CrmProjectValues,
 } from './projectTypes'
 import type { CrmReferenceValue, CrmSgManager } from './types'
+import { withStatusComment } from '../projects/blankLayout'
 
 export async function loadProjectForm(params: Record<string, string> = {}): Promise<CrmProjectForm> {
   const query = new URLSearchParams(params).toString()
-  return apiRequest<CrmProjectForm>(`/crm/projects/form${query ? `?${query}` : ''}`)
+  const form = await apiRequest<CrmProjectForm>(`/crm/projects/form${query ? `?${query}` : ''}`)
+  return { ...form, fields: withStatusComment(form.fields) }
 }
 
 export async function loadFieldOptions(

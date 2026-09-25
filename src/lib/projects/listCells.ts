@@ -24,7 +24,6 @@ const FIELD_REFERENCE: Partial<Record<string, CrmReferenceType>> = {
 
 const FALLBACK_FIELDS: CrmFormField[] = [
   field('date', 'information_form_date', 'Дата составления'),
-  field('text', 'comment', 'Примечание'),
   field('list', 'information_source_id', 'Источник информации о проекте'),
   field('text', 'name', 'Название проекта'),
   field('text', 'address', 'Адрес объекта строительства'),
@@ -40,6 +39,16 @@ const FALLBACK_FIELDS: CrmFormField[] = [
   field('date', 'first_contact_date', 'Дата первого контакта с клиентом'),
   field('multiple_list', 'documentation_type_ids', 'Проделанная работа'),
   field('materials', 'materials', 'Краткая информация о предлагаемых материалах'),
+  {
+    type: 'text_area',
+    name: 'Краткий статус / комментарий',
+    code: 'comment',
+    required: false,
+    disabled: false,
+    query: '',
+    source: '',
+    accept: '',
+  },
 ]
 
 function field(type: CrmFormField['type'], code: string, name: string): CrmFormField {
