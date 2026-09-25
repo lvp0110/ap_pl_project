@@ -7,12 +7,6 @@ export type MaterialImportResult = {
   unchanged: number
 }
 
-export type MaterialImportRowError = {
-  row: number
-  column?: string
-  message: string
-}
-
 export type MaterialDraft = {
   brand_code: string
   article: string

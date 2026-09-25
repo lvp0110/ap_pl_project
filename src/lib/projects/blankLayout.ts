@@ -110,15 +110,3 @@ export function planBlankFields(fields: CrmFormField[]): BlankPlan {
 
   return { date, note, info, contacts, work, materials, extra }
 }
-
-export function blankSheetFields(fields: CrmFormField[]): CrmFormField[] {
-  const plan = planBlankFields(fields)
-  return [
-    ...plan.date,
-    ...plan.note,
-    ...plan.info.flat(),
-    ...plan.contacts.flat(),
-    ...plan.work.flat(),
-    ...(plan.materials ? [plan.materials] : []),
-  ]
-}
