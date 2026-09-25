@@ -22,7 +22,7 @@ export function withStatusComment(fields: CrmFormField[] | undefined): CrmFormFi
     ...STATUS_COMMENT,
     ...current,
     type: 'text_area',
-    name: STATUS_COMMENT.name,
+    name: current?.name?.trim() || STATUS_COMMENT.name,
     code: STATUS_COMMENT.code,
     required: false,
     disabled: false,
@@ -75,7 +75,7 @@ const WORD_LABELS: Record<string, string> = {
 const SUPPLY_PAIR = ['planned_supply_quarter', 'planned_supply_year'] as const
 
 export function blankLabel(field: CrmFormField): string {
-  return WORD_LABELS[field.code] ?? field.name
+  return field.name.trim() || WORD_LABELS[field.code] || field.code
 }
 
 export type BlankPlan = {
