@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
+import { blankLabel } from '../lib/projects/blankLayout'
 import { Dropdown } from './Dropdown'
 import type { CrmFormField } from '../lib/api/projectTypes'
 import { SourcePath } from './SourcePath'
@@ -91,7 +92,7 @@ export function BlankContactsTable({
         <tbody>
           {ag ? (
             <tr>
-              <th>Ответственный со стороны компании-партнера</th>
+              <th>{blankLabel(ag)}</th>
               <td>{PARTNER_COMPANY}</td>
               <td className="bi-fill">
                 {render(ag)}
@@ -110,7 +111,7 @@ export function BlankContactsTable({
           ) : null}
           {sg ? (
             <tr>
-              <th>Ответственный SG</th>
+              <th>{blankLabel(sg)}</th>
               <td className="bi-fill">
                 {render(sg)}
                 <SourcePath field={sg} projectId={projectId} />
@@ -129,7 +130,7 @@ export function BlankContactsTable({
           ) : null}
           {people && readOnly ? (
             <tr>
-              <th>Контактные лица</th>
+              <th>{blankLabel(people)}</th>
               <td className="bi-fill" colSpan={3}>
                 {render(people)}
                 <SourcePath field={people} projectId={projectId} />

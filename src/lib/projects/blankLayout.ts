@@ -45,7 +45,7 @@ const WORD_LABELS: Record<string, string> = {
 const SUPPLY_PAIR = ['planned_supply_quarter', 'planned_supply_year'] as const
 
 export function blankLabel(field: CrmFormField): string {
-  return WORD_LABELS[field.code] ?? field.name
+  return field.name.trim() || WORD_LABELS[field.code] || field.code
 }
 
 export type BlankPlan = {

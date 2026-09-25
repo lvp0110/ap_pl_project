@@ -92,7 +92,7 @@ export function ProjectBlankSheet({
           <table className="bi-date">
             <thead>
               <tr>
-                <th>Дата составления</th>
+                <th>{plan.date[0] ? blankLabel(plan.date[0]) : 'Дата составления'}</th>
                 <th>Примечание</th>
               </tr>
             </thead>
@@ -137,7 +137,7 @@ export function ProjectBlankSheet({
 
         {plan.materials ? (
           <section className="bi-block">
-            <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
+            <h3 className="bi-section">{blankLabel(plan.materials)}</h3>
             <div className="bi-materials">
               {cell(plan.materials)}
               <SourcePath field={plan.materials} projectId={projectId} />
@@ -191,7 +191,7 @@ function WorkTable({
   if (!flat.length) return null
   return (
     <section className="bi-block">
-      <h3 className="bi-section">Проделанная работа</h3>
+      <h3 className="bi-section">{pick ? blankLabel(pick) : 'Проделанная работа'}</h3>
       <table className="bi-grid">
         <tbody>
           {lines.map((field) => (
@@ -229,7 +229,11 @@ function Section({
         <tbody>
           {rows.map((row) => (
             <tr key={row.map((field) => field.code).join('+')}>
-              <th>{blankLabel(row[0])}</th>
+              <th>
+                {row.map((field) => (
+                  <div key={field.code}>{blankLabel(field)}</div>
+                ))}
+              </th>
               <td className="bi-fill" colSpan={1}>
                 {row.length === 1 ? (
                   <>

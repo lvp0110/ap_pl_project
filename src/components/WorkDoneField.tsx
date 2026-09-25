@@ -3,10 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmFormField, CrmOption } from '../lib/api/projectTypes'
 
-const FIELD_LABEL = 'Проделанная работа'
 const PICK_LABEL = 'Выбрать'
 
 type Props = {
+  label: string
   options: CrmOption[]
   value: string[]
   disabled: boolean
@@ -17,7 +17,7 @@ type Props = {
   sourcePath?: string
 }
 
-export function WorkDoneField({ options, value, disabled, hint, invalid, error, onChange, sourcePath }: Props) {
+export function WorkDoneField({ label, options, value, disabled, hint, invalid, error, onChange, sourcePath }: Props) {
   const [open, setOpen] = useState(false)
   const cellRef = useRef<HTMLTableCellElement>(null)
   const labels = useMemo(
@@ -80,7 +80,7 @@ export function WorkDoneField({ options, value, disabled, hint, invalid, error, 
     return (
       <tr>
         <th>
-          {FIELD_LABEL}
+          {label}
           {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         {pick}
@@ -92,7 +92,7 @@ export function WorkDoneField({ options, value, disabled, hint, invalid, error, 
     <>
       <tr>
         <th className="work-done-label" rowSpan={value.length + 1}>
-          {FIELD_LABEL}
+          {label}
           {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         <td className="bi-fill">{labels.get(value[0]) ?? value[0]}</td>
@@ -141,7 +141,7 @@ export function WorkDoneRowsView({
     <>
       <tr>
         <th className="work-done-label" rowSpan={value.length}>
-          {FIELD_LABEL}
+          {field.name.trim() || field.code}
           {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         <td className="bi-fill">{labels.get(value[0]) ?? value[0]}</td>

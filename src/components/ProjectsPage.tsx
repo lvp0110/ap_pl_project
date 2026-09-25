@@ -48,27 +48,6 @@ function hiddenFilter(filter: { code: string; name?: string }): boolean {
 const SHORT_LABEL: Record<string, string> = {
   [ROW_ID_FILTER]: '№',
   [CHECK_FILTER]: 'Проверка',
-  information_form_date: 'Дата',
-  comment: 'Примечание',
-  information_source_id: 'Источник',
-  name: 'Проект',
-  address: 'Адрес',
-  segment_id: 'Назначение',
-  stage_id: 'Стадия',
-  planned_shipment_date: 'Дата поставки',
-  planned_supply_quarter: 'Квартал',
-  planned_supply_year: 'Год',
-  sale_probability: 'Вероятность',
-  ag_manager_id: 'Ответственный АГ',
-  sg_manager_id: 'Ответственный SG',
-  participant_ids: 'Контактные лица',
-  first_contact_date: 'Первый контакт',
-  documentation_type_ids: 'Работа',
-  materials: 'Материалы',
-  region_id: 'Регион',
-  status: 'Статус',
-  priority_id: 'Приоритет',
-  support_status_id: 'Поддержка',
 }
 
 export function ProjectsPage({
