@@ -1,7 +1,37 @@
 import type { CrmFormField } from '../api/projectTypes'
 
 const HEADER_DATE = ['information_form_date']
-const HEADER_NOTE = ['comment']
+
+export const STATUS_COMMENT: CrmFormField = {
+  type: 'text_area',
+  name: 'Краткий статус / комментарий',
+  code: 'comment',
+  required: false,
+  disabled: false,
+  query: '',
+  source: '',
+  accept: '',
+}
+
+/** Поле комментария всегда есть и стоит последним, чтобы textarea была под остальными пунктами. */
+export function withStatusComment(fields: CrmFormField[] | undefined): CrmFormField[] {
+  const list = fields ?? []
+  if (!list.length) return list
+  const current = list.find((field) => field.code === STATUS_COMMENT.code)
+  const comment: CrmFormField = {
+    ...STATUS_COMMENT,
+    ...current,
+    type: 'text_area',
+    name: current?.name?.trim() || STATUS_COMMENT.name,
+    code: STATUS_COMMENT.code,
+    required: false,
+    disabled: false,
+    query: current?.query ?? '',
+    source: current?.source ?? '',
+    accept: current?.accept ?? '',
+  }
+  return [...list.filter((field) => field.code !== STATUS_COMMENT.code), comment]
+}
 
 const INFO_CODES = [
   'information_source_id',
@@ -21,7 +51,7 @@ const WORK_CODES = ['first_contact_date', 'documentation_type_ids']
 
 const WORD_LABELS: Record<string, string> = {
   information_form_date: 'Дата составления',
-  comment: 'Примечание',
+  comment: 'Краткий статус / комментарий',
   information_source_id: 'Источник информации о проекте',
   name: 'Название проекта',
   address: 'Адрес объекта строительства',
@@ -45,7 +75,7 @@ const WORD_LABELS: Record<string, string> = {
 const SUPPLY_PAIR = ['planned_supply_quarter', 'planned_supply_year'] as const
 
 export function blankLabel(field: CrmFormField): string {
-  return WORD_LABELS[field.code] ?? field.name
+  return field.name.trim() || WORD_LABELS[field.code] || field.code
 }
 
 export type BlankPlan = {
@@ -59,7 +89,8 @@ export type BlankPlan = {
 }
 
 export function planBlankFields(fields: CrmFormField[]): BlankPlan {
-  const byCode = new Map(fields.map((field) => [field.code, field]))
+  const ordered = withStatusComment(fields)
+  const byCode = new Map(ordered.map((field) => [field.code, field]))
   const used = new Set<string>()
 
   function takeList(codes: string[]): CrmFormField[] {
@@ -101,24 +132,12 @@ export function planBlankFields(fields: CrmFormField[]): BlankPlan {
   }
 
   const date = takeList(HEADER_DATE)
-  const note = takeList(HEADER_NOTE)
+  const note: CrmFormField[] = []
   const info = asRows(takeList(INFO_CODES))
   const contacts = asRows(takeList(CONTACT_CODES))
   const work = asRows(takeList(WORK_CODES))
   const materials = takeList(['materials'])[0] ?? null
-  const extra = asRows(fields.filter((field) => !used.has(field.code)))
+  const extra = asRows(ordered.filter((field) => !used.has(field.code)))
 
   return { date, note, info, contacts, work, materials, extra }
-}
-
-export function blankSheetFields(fields: CrmFormField[]): CrmFormField[] {
-  const plan = planBlankFields(fields)
-  return [
-    ...plan.date,
-    ...plan.note,
-    ...plan.info.flat(),
-    ...plan.contacts.flat(),
-    ...plan.work.flat(),
-    ...(plan.materials ? [plan.materials] : []),
-  ]
 }

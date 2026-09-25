@@ -37,10 +37,7 @@ const GROUPS: Array<{ key: keyof Catalogs; title: string; hint: string }> = [
   { key: 'regions', title: 'Регион', hint: 'POST /crm/references/region' },
   { key: 'documentationTypes', title: 'Проделанная работа', hint: 'POST /crm/references/documentation_type' },
   { key: 'managersSG', title: 'Менеджеры СГ', hint: 'POST /crm/sg-managers — нужны имя и email' },
-  { key: 'managersAG', title: 'Ответственные АГ', hint: 'GET /crm/project-options/employees' },
-  { key: 'units', title: 'Ед. измерения', hint: 'Из прайса Excel и CRM-материалов' },
   { key: 'probabilities', title: 'Вероятность поставки', hint: 'GET /crm/references/probability' },
-  { key: 'reservationStatuses', title: 'Резервирование', hint: 'GET /crm/references/reserve' },
 ]
 
 function ReferenceRow({

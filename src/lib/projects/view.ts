@@ -1,17 +1,8 @@
 import { isDraftStatus, type CrmFormField, type CrmProject } from '../api/projectTypes'
-import type { CrmReferenceType, CrmReferenceValue } from '../api/types'
+import type { CrmReferenceValue } from '../api/types'
 import { asMaterials, readValue } from './formValues'
 
 export type ReferenceMap = Record<string, CrmReferenceValue[]>
-
-export function referenceName(
-  references: ReferenceMap,
-  type: CrmReferenceType,
-  id?: number | null,
-): string {
-  if (!id) return '—'
-  return references[type]?.find((value) => value.id === id)?.name ?? '—'
-}
 
 export function isIncomplete(project: CrmProject): boolean {
   return !project.stage_id || !project.segment_id || !project.region_id || !project.sg_manager_id
@@ -57,11 +48,6 @@ export function isBlankComplete(project: CrmProject, fields: CrmFormField[]): bo
 export function formatMoney(value: number): string {
   if (!value) return '—'
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`
-}
-
-export function formatAmount(value: number, unit: string): string {
-  if (!value) return '—'
-  return `${value.toLocaleString('ru-RU')} ${unit}`
 }
 
 export function formatProjectCount(count: number): string {

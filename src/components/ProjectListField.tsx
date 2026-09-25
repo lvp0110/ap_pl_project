@@ -69,6 +69,7 @@ export function ProjectListField({ field, value, parentValue, disabled, invalid,
   if (field.code === 'documentation_type_ids') {
     return (
       <WorkDoneField
+        label={field.name.trim() || field.code}
         options={options}
         value={Array.isArray(value) ? value : []}
         disabled={disabled || blocked}
