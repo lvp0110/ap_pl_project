@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { CONTACT_ROWS, PARTNER_COMPANY } from '../data/defaults'
 import { Dropdown } from './Dropdown'
 import type { CrmFormField } from '../lib/api/projectTypes'
+import { SourcePath } from './SourcePath'
 
 type Props = {
   fields: CrmFormField[]
@@ -12,6 +13,7 @@ type Props = {
   sgNote?: string
   onAgNote?: (value: string) => void
   onSgNote?: (value: string) => void
+  projectId?: number
 }
 
 type ContactEntry = {
@@ -32,6 +34,7 @@ export function BlankContactsTable({
   sgNote = '',
   onAgNote,
   onSgNote,
+  projectId,
 }: Props) {
   const byCode = new Map(fields.map((field) => [field.code, field]))
   const ag = byCode.get('ag_manager_id')
@@ -90,7 +93,10 @@ export function BlankContactsTable({
             <tr>
               <th>Ответственный со стороны компании-партнера</th>
               <td>{PARTNER_COMPANY}</td>
-              <td className="bi-fill">{render(ag)}</td>
+              <td className="bi-fill">
+                {render(ag)}
+                <SourcePath field={ag} projectId={projectId} />
+              </td>
               <td className="bi-fill">
                 <NoteCell
                   value={agNote}
@@ -105,7 +111,10 @@ export function BlankContactsTable({
           {sg ? (
             <tr>
               <th>Ответственный SG</th>
-              <td className="bi-fill">{render(sg)}</td>
+              <td className="bi-fill">
+                {render(sg)}
+                <SourcePath field={sg} projectId={projectId} />
+              </td>
               <td />
               <td className="bi-fill">
                 <NoteCell
@@ -123,6 +132,7 @@ export function BlankContactsTable({
               <th>Контактные лица</th>
               <td className="bi-fill" colSpan={3}>
                 {render(people)}
+                <SourcePath field={people} projectId={projectId} />
               </td>
             </tr>
           ) : null}
@@ -131,6 +141,7 @@ export function BlankContactsTable({
               <tr>
                 <td className="bi-fill">
                   <ContactRoleSelect onPick={addType} />
+                  <SourcePath field={people} projectId={projectId} />
                 </td>
                 <td />
                 <td />

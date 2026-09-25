@@ -8,6 +8,7 @@ import type { ProjectFormValues } from '../lib/projects/formValues'
 import { loadSheetNotes, saveSheetNotes } from '../lib/projects/sheetNotes'
 import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFormField } from './ProjectFormField'
+import { SourcePath } from './SourcePath'
 
 type Props = {
   fields: CrmFormField[]
@@ -39,6 +40,7 @@ export function ProjectBlankSheet({
   notesKey,
 }: Props) {
   const plan = planBlankFields(fields)
+  const projectId = typeof notesKey === 'number' ? notesKey : undefined
   const [liveRevenue, setLiveRevenue] = useState(() =>
     savedMaterials.reduce((sum, line) => sum + line.line_amount, 0),
   )
@@ -71,6 +73,7 @@ export function ProjectBlankSheet({
         embed
         onMaterialsTotal={field.type === 'materials' ? setLiveRevenue : undefined}
         notesKey={field.type === 'materials' ? notesKey : undefined}
+        projectId={projectId}
       />
     )
   }
@@ -95,10 +98,16 @@ export function ProjectBlankSheet({
             </thead>
             <tbody>
               <tr>
-                <td className="bi-fill">{plan.date[0] ? cell(plan.date[0]) : null}</td>
+                <td className="bi-fill">
+                  {plan.date[0] ? cell(plan.date[0]) : null}
+                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={projectId} /> : null}
+                </td>
                 <td className="bi-fill">
                   {headerField && crmHeader ? (
-                    cell(headerField)
+                    <>
+                      {cell(headerField)}
+                      <SourcePath field={headerField} projectId={projectId} />
+                    </>
                   ) : (
                     <input
                       value={notes.header}
@@ -113,22 +122,26 @@ export function ProjectBlankSheet({
           </table>
         </header>
 
-        <Section title="Информация о проекте" rows={plan.info} cell={cell} />
+        <Section title="Информация о проекте" rows={plan.info} cell={cell} projectId={projectId} />
         <BlankContactsTable
           fields={plan.contacts.flat()}
           render={cell}
+          projectId={projectId}
           agNote={notes.ag}
           sgNote={notes.sg}
           onAgNote={(ag) => patchNotes({ ag })}
           onSgNote={(sg) => patchNotes({ sg })}
           busy={busy}
         />
-        <WorkTable rows={plan.work} cell={cell} />
+        <WorkTable rows={plan.work} cell={cell} projectId={projectId} />
 
         {plan.materials ? (
           <section className="bi-block">
             <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
-            <div className="bi-materials">{cell(plan.materials)}</div>
+            <div className="bi-materials">
+              {cell(plan.materials)}
+              <SourcePath field={plan.materials} projectId={projectId} />
+            </div>
           </section>
         ) : null}
       </div>
@@ -153,6 +166,7 @@ export function ProjectBlankSheet({
                 removedFiles={removedFiles}
                 onRemovedFilesChange={onRemovedFilesChange}
                 displayValue={field.code === 'potential_revenue' ? liveRevenue : undefined}
+                projectId={projectId}
               />
             ))}
           </div>
@@ -165,9 +179,11 @@ export function ProjectBlankSheet({
 function WorkTable({
   rows,
   cell,
+  projectId,
 }: {
   rows: import('../lib/api/projectTypes').CrmFormField[][]
   cell: (field: import('../lib/api/projectTypes').CrmFormField) => ReactNode
+  projectId?: number
 }) {
   const flat = rows.flat()
   const lines = flat.filter((field) => field.code !== 'documentation_type_ids')
@@ -181,7 +197,10 @@ function WorkTable({
           {lines.map((field) => (
             <tr key={field.code}>
               <th>{blankLabel(field)}</th>
-              <td className="bi-fill">{cell(field)}</td>
+              <td className="bi-fill">
+                {cell(field)}
+                <SourcePath field={field} projectId={projectId} />
+              </td>
             </tr>
           ))}
           {pick ? cell(pick) : null}
@@ -195,10 +214,12 @@ function Section({
   title,
   rows,
   cell,
+  projectId,
 }: {
   title?: string
   rows: import('../lib/api/projectTypes').CrmFormField[][]
   cell: (field: import('../lib/api/projectTypes').CrmFormField) => ReactNode
+  projectId?: number
 }) {
   if (!rows.length) return null
   return (
@@ -211,11 +232,17 @@ function Section({
               <th>{blankLabel(row[0])}</th>
               <td className="bi-fill" colSpan={1}>
                 {row.length === 1 ? (
-                  cell(row[0])
+                  <>
+                    {cell(row[0])}
+                    <SourcePath field={row[0]} projectId={projectId} />
+                  </>
                 ) : (
                   <div className="bi-pair">
                     {row.map((field) => (
-                      <div key={field.code}>{cell(field)}</div>
+                      <div key={field.code}>
+                        {cell(field)}
+                        <SourcePath field={field} projectId={projectId} />
+                      </div>
                     ))}
                   </div>
                 )}

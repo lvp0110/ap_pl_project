@@ -6,6 +6,7 @@ import { formatMoney } from '../lib/projects/view'
 import { Dropdown } from './Dropdown'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
+import { SourcePath } from './SourcePath'
 
 const QUARTERS = ['1', '2', '3', '4']
 
@@ -25,6 +26,7 @@ type Props = {
   displayValue?: number
   onMaterialsTotal?: (value: number) => void
   notesKey?: number | string
+  projectId?: number
 }
 
 export function ProjectFormField({
@@ -43,6 +45,7 @@ export function ProjectFormField({
   displayValue,
   onMaterialsTotal,
   notesKey,
+  projectId,
 }: Props) {
   if (field.code === 'documentation_type_ids') {
     return (
@@ -59,6 +62,7 @@ export function ProjectFormField({
             invalid={Boolean(error)}
             error={error}
             onChange={controlled.onChange}
+            projectId={projectId}
           />
         )}
       />
@@ -72,6 +76,7 @@ export function ProjectFormField({
       <label className="field field-readonly">
         <span className="field-label">{field.name}</span>
         <input value={text} readOnly />
+        <SourcePath field={field} projectId={projectId} />
       </label>
     )
   }
@@ -123,6 +128,7 @@ export function ProjectFormField({
       <div className="field field-span field-file">
         <span className="field-label">{field.name}</span>
         {body}
+        <SourcePath field={field} projectId={projectId} />
       </div>
     )
   }
@@ -150,6 +156,7 @@ export function ProjectFormField({
             <div className="field field-span">
               <span className="field-label">{field.name}</span>
               {editor}
+              <SourcePath field={field} projectId={projectId} />
             </div>
           )
         }}
@@ -165,7 +172,7 @@ export function ProjectFormField({
       render={({ field: controlled }) =>
         embed ? (
           <div className={`bi-control${error ? ' field-invalid' : ''}`}>
-            {renderControl(field, controlled, parentValue, busy)}
+            {renderControl(field, controlled, parentValue, busy, projectId)}
             {error && <span className="field-hint">{error}</span>}
           </div>
         ) : (
@@ -174,8 +181,9 @@ export function ProjectFormField({
               {field.name}
               {field.required && ' *'}
             </span>
-            {renderControl(field, controlled, parentValue, busy)}
+            {renderControl(field, controlled, parentValue, busy, projectId)}
             {error && <span className="field-hint">{error}</span>}
+            <SourcePath field={field} projectId={projectId} />
           </label>
         )
       }
@@ -199,6 +207,7 @@ function renderControl(
   controlled: ControlledField,
   parentValue: string,
   busy: boolean,
+  projectId?: number,
 ) {
   const text = typeof controlled.value === 'string' ? controlled.value : ''
 
@@ -243,6 +252,7 @@ function renderControl(
           parentValue={parentValue}
           disabled={busy}
           onChange={controlled.onChange}
+          projectId={projectId}
         />
       )
     case 'text_area':

@@ -2,11 +2,13 @@ import type { ReactNode } from 'react'
 import { PARTNER_COMPANY } from '../data/defaults'
 import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
 import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
+import { fieldSourcePath } from '../lib/projects/fieldSource'
 import { readValue } from '../lib/projects/formValues'
 import { loadSheetNotes } from '../lib/projects/sheetNotes'
 import { formatDate, isBlankComplete, isSubmittedProject } from '../lib/projects/view'
 import { BlankContactsTable } from './BlankContactsTable'
 import { ProjectFieldValue } from './ProjectFieldValue'
+import { SourcePath } from './SourcePath'
 import { WorkDoneRowsView } from './WorkDoneField'
 
 type Props = {
@@ -66,31 +68,43 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
             </thead>
             <tbody>
               <tr>
-                <td className="bi-fill">{plan.date[0] ? value(plan.date[0]) : null}</td>
                 <td className="bi-fill">
-                  {headerField && !headerField.disabled
-                    ? value(headerField)
-                    : notes.header || (headerField ? value(headerField) : null)}
+                  {plan.date[0] ? value(plan.date[0]) : null}
+                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={project.id} /> : null}
+                </td>
+                <td className="bi-fill">
+                  {headerField && !headerField.disabled ? (
+                    <>
+                      {value(headerField)}
+                      <SourcePath field={headerField} projectId={project.id} />
+                    </>
+                  ) : (
+                    notes.header || (headerField ? value(headerField) : null)
+                  )}
                 </td>
               </tr>
             </tbody>
           </table>
         </header>
 
-        <ViewSection title="Информация о проекте" rows={plan.info} value={value} />
+        <ViewSection title="Информация о проекте" rows={plan.info} value={value} projectId={project.id} />
         <BlankContactsTable
           fields={plan.contacts.flat()}
           render={value}
+          projectId={project.id}
           readOnly
           agNote={notes.ag}
           sgNote={notes.sg}
         />
-        <WorkView rows={plan.work} project={project} value={value} />
+        <WorkView rows={plan.work} project={project} value={value} projectId={project.id} />
 
         {plan.materials ? (
           <section className="bi-block">
             <h3 className="bi-section">Краткая информация о предлагаемых материалах</h3>
-            <div className="bi-materials">{value(plan.materials)}</div>
+            <div className="bi-materials">
+              {value(plan.materials)}
+              <SourcePath field={plan.materials} projectId={project.id} />
+            </div>
           </section>
         ) : null}
       </div>
@@ -114,6 +128,7 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
                   <dt>{field.name}</dt>
                   <dd>
                     <ProjectFieldValue field={field} project={project} parentValue={parent} />
+                    <SourcePath field={field} projectId={project.id} />
                   </dd>
                 </div>
               )
@@ -129,10 +144,12 @@ function WorkView({
   rows,
   project,
   value,
+  projectId,
 }: {
   rows: CrmFormField[][]
   project: CrmProject
   value: (field: CrmFormField) => ReactNode
+  projectId: number
 }) {
   const flat = rows.flat()
   const lines = flat.filter((field) => field.code !== 'documentation_type_ids')
@@ -148,10 +165,15 @@ function WorkView({
           {lines.map((field) => (
             <tr key={field.code}>
               <th>{blankLabel(field)}</th>
-              <td className="bi-fill">{value(field)}</td>
+              <td className="bi-fill">
+                {value(field)}
+                <SourcePath field={field} projectId={projectId} />
+              </td>
             </tr>
           ))}
-          {pick ? <WorkDoneRowsView field={pick} value={codes} /> : null}
+          {pick ? (
+            <WorkDoneRowsView field={pick} value={codes} sourcePath={fieldSourcePath(pick, projectId)} />
+          ) : null}
         </tbody>
       </table>
     </section>
@@ -162,10 +184,12 @@ function ViewSection({
   title,
   rows,
   value,
+  projectId,
 }: {
   title?: string
   rows: CrmFormField[][]
   value: (field: CrmFormField) => ReactNode
+  projectId: number
 }) {
   if (!rows.length) return null
   return (
@@ -178,11 +202,17 @@ function ViewSection({
               <th>{blankLabel(row[0])}</th>
               <td className="bi-fill">
                 {row.length === 1 ? (
-                  value(row[0])
+                  <>
+                    {value(row[0])}
+                    <SourcePath field={row[0]} projectId={projectId} />
+                  </>
                 ) : (
                   <div className="bi-pair">
                     {row.map((field) => (
-                      <div key={field.code}>{value(field)}</div>
+                      <div key={field.code}>
+                        {value(field)}
+                        <SourcePath field={field} projectId={projectId} />
+                      </div>
                     ))}
                   </div>
                 )}

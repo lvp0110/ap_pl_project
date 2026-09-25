@@ -14,9 +14,10 @@ type Props = {
   invalid?: boolean
   error?: string
   onChange: (value: string[]) => void
+  sourcePath?: string
 }
 
-export function WorkDoneField({ options, value, disabled, hint, invalid, error, onChange }: Props) {
+export function WorkDoneField({ options, value, disabled, hint, invalid, error, onChange, sourcePath }: Props) {
   const [open, setOpen] = useState(false)
   const cellRef = useRef<HTMLTableCellElement>(null)
   const labels = useMemo(
@@ -78,7 +79,10 @@ export function WorkDoneField({ options, value, disabled, hint, invalid, error, 
   if (!value.length) {
     return (
       <tr>
-        <th>{FIELD_LABEL}</th>
+        <th>
+          {FIELD_LABEL}
+          {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
+        </th>
         {pick}
       </tr>
     )
@@ -89,6 +93,7 @@ export function WorkDoneField({ options, value, disabled, hint, invalid, error, 
       <tr>
         <th className="work-done-label" rowSpan={value.length + 1}>
           {FIELD_LABEL}
+          {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         <td className="bi-fill">{labels.get(value[0]) ?? value[0]}</td>
       </tr>
@@ -102,7 +107,15 @@ export function WorkDoneField({ options, value, disabled, hint, invalid, error, 
   )
 }
 
-export function WorkDoneRowsView({ field, value }: { field: CrmFormField; value: string[] }) {
+export function WorkDoneRowsView({
+  field,
+  value,
+  sourcePath,
+}: {
+  field: CrmFormField
+  value: string[]
+  sourcePath?: string
+}) {
   const key = field.endpoint ? field.endpoint : ''
   const [options, setOptions] = useState<CrmOption[]>([])
 
@@ -129,6 +142,7 @@ export function WorkDoneRowsView({ field, value }: { field: CrmFormField; value:
       <tr>
         <th className="work-done-label" rowSpan={value.length}>
           {FIELD_LABEL}
+          {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         <td className="bi-fill">{labels.get(value[0]) ?? value[0]}</td>
       </tr>

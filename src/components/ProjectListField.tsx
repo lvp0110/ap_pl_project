@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { loadFieldOptions } from '../lib/api/projects'
 import type { CrmFormField, CrmOption } from '../lib/api/projectTypes'
+import { fieldSourcePath } from '../lib/projects/fieldSource'
 import { OptionAutocomplete } from './OptionAutocomplete'
 import { OptionCombobox } from './OptionCombobox'
 import { WorkDoneField } from './WorkDoneField'
@@ -13,6 +14,7 @@ type Props = {
   invalid?: boolean
   error?: string
   onChange: (value: string | string[]) => void
+  projectId?: number
 }
 
 type Loaded = {
@@ -23,7 +25,7 @@ type Loaded = {
 
 const EMPTY: Loaded = { key: '', options: [], failed: false }
 
-export function ProjectListField({ field, value, parentValue, disabled, invalid, error, onChange }: Props) {
+export function ProjectListField({ field, value, parentValue, disabled, invalid, error, onChange, projectId }: Props) {
   const blocked = Boolean(field.depends_on) && !parentValue
   const key = !field.endpoint || blocked ? '' : `${field.endpoint}|${field.depends_on ?? ''}=${parentValue}`
 
@@ -76,6 +78,7 @@ export function ProjectListField({ field, value, parentValue, disabled, invalid,
         invalid={invalid}
         error={error}
         onChange={onChange}
+        sourcePath={fieldSourcePath(field, projectId)}
       />
     )
   }
