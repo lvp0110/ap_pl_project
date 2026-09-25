@@ -92,22 +92,22 @@ export function ProjectBlankSheet({
           <table className="bi-date">
             <thead>
               <tr>
-                <th>{plan.date[0] ? blankLabel(plan.date[0]) : 'Дата составления'}</th>
-                <th>Примечание</th>
+                <th>
+                  {plan.date[0] ? blankLabel(plan.date[0]) : 'Дата составления'}
+                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={projectId} /> : null}
+                </th>
+                <th>
+                  Примечание
+                  {headerField ? <SourcePath field={headerField} projectId={projectId} /> : null}
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="bi-fill">
-                  {plan.date[0] ? cell(plan.date[0]) : null}
-                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={projectId} /> : null}
-                </td>
+                <td className="bi-fill">{plan.date[0] ? cell(plan.date[0]) : null}</td>
                 <td className="bi-fill">
                   {headerField && crmHeader ? (
-                    <>
-                      {cell(headerField)}
-                      <SourcePath field={headerField} projectId={projectId} />
-                    </>
+                    cell(headerField)
                   ) : (
                     <input
                       value={notes.header}
@@ -137,11 +137,11 @@ export function ProjectBlankSheet({
 
         {plan.materials ? (
           <section className="bi-block">
-            <h3 className="bi-section">{blankLabel(plan.materials)}</h3>
-            <div className="bi-materials">
-              {cell(plan.materials)}
+            <h3 className="bi-section">
+              {blankLabel(plan.materials)}
               <SourcePath field={plan.materials} projectId={projectId} />
-            </div>
+            </h3>
+            <div className="bi-materials">{cell(plan.materials)}</div>
           </section>
         ) : null}
       </div>
@@ -196,11 +196,11 @@ function WorkTable({
         <tbody>
           {lines.map((field) => (
             <tr key={field.code}>
-              <th>{blankLabel(field)}</th>
-              <td className="bi-fill">
-                {cell(field)}
+              <th>
+                {blankLabel(field)}
                 <SourcePath field={field} projectId={projectId} />
-              </td>
+              </th>
+              <td className="bi-fill">{cell(field)}</td>
             </tr>
           ))}
           {pick ? cell(pick) : null}
@@ -231,22 +231,19 @@ function Section({
             <tr key={row.map((field) => field.code).join('+')}>
               <th>
                 {row.map((field) => (
-                  <div key={field.code}>{blankLabel(field)}</div>
+                  <div key={field.code}>
+                    {blankLabel(field)}
+                    <SourcePath field={field} projectId={projectId} />
+                  </div>
                 ))}
               </th>
               <td className="bi-fill" colSpan={1}>
                 {row.length === 1 ? (
-                  <>
-                    {cell(row[0])}
-                    <SourcePath field={row[0]} projectId={projectId} />
-                  </>
+                  cell(row[0])
                 ) : (
                   <div className="bi-pair">
                     {row.map((field) => (
-                      <div key={field.code}>
-                        {cell(field)}
-                        <SourcePath field={field} projectId={projectId} />
-                      </div>
+                      <div key={field.code}>{cell(field)}</div>
                     ))}
                   </div>
                 )}

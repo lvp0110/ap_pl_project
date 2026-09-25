@@ -92,12 +92,12 @@ export function BlankContactsTable({
         <tbody>
           {ag ? (
             <tr>
-              <th>{blankLabel(ag)}</th>
-              <td>{PARTNER_COMPANY}</td>
-              <td className="bi-fill">
-                {render(ag)}
+              <th>
+                {blankLabel(ag)}
                 <SourcePath field={ag} projectId={projectId} />
-              </td>
+              </th>
+              <td>{PARTNER_COMPANY}</td>
+              <td className="bi-fill">{render(ag)}</td>
               <td className="bi-fill">
                 <NoteCell
                   value={agNote}
@@ -111,11 +111,11 @@ export function BlankContactsTable({
           ) : null}
           {sg ? (
             <tr>
-              <th>{blankLabel(sg)}</th>
-              <td className="bi-fill">
-                {render(sg)}
+              <th>
+                {blankLabel(sg)}
                 <SourcePath field={sg} projectId={projectId} />
-              </td>
+              </th>
+              <td className="bi-fill">{render(sg)}</td>
               <td />
               <td className="bi-fill">
                 <NoteCell
@@ -130,10 +130,12 @@ export function BlankContactsTable({
           ) : null}
           {people && readOnly ? (
             <tr>
-              <th>{blankLabel(people)}</th>
+              <th>
+                {blankLabel(people)}
+                <SourcePath field={people} projectId={projectId} />
+              </th>
               <td className="bi-fill" colSpan={3}>
                 {render(people)}
-                <SourcePath field={people} projectId={projectId} />
               </td>
             </tr>
           ) : null}

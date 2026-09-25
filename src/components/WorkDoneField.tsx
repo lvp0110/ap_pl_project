@@ -135,13 +135,24 @@ export function WorkDoneRowsView({
   }, [key, value.length])
 
   const labels = useMemo(() => new Map(options.map((option) => [option.code, option.name])), [options])
-  if (!value.length) return null
+  const title = field.name.trim() || field.code
+  if (!value.length) {
+    return (
+      <tr>
+        <th className="work-done-label">
+          {title}
+          {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
+        </th>
+        <td className="bi-fill" />
+      </tr>
+    )
+  }
 
   return (
     <>
       <tr>
         <th className="work-done-label" rowSpan={value.length}>
-          {field.name.trim() || field.code}
+          {title}
           {sourcePath ? <span className="bi-path">{sourcePath}</span> : null}
         </th>
         <td className="bi-fill">{labels.get(value[0]) ?? value[0]}</td>

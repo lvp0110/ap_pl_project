@@ -62,22 +62,22 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
           <table className="bi-date">
             <thead>
               <tr>
-                <th>{plan.date[0] ? blankLabel(plan.date[0]) : 'Дата составления'}</th>
-                <th>Примечание</th>
+                <th>
+                  {plan.date[0] ? blankLabel(plan.date[0]) : 'Дата составления'}
+                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={project.id} /> : null}
+                </th>
+                <th>
+                  Примечание
+                  {headerField ? <SourcePath field={headerField} projectId={project.id} /> : null}
+                </th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="bi-fill">
-                  {plan.date[0] ? value(plan.date[0]) : null}
-                  {plan.date[0] ? <SourcePath field={plan.date[0]} projectId={project.id} /> : null}
-                </td>
+                <td className="bi-fill">{plan.date[0] ? value(plan.date[0]) : null}</td>
                 <td className="bi-fill">
                   {headerField && !headerField.disabled ? (
-                    <>
-                      {value(headerField)}
-                      <SourcePath field={headerField} projectId={project.id} />
-                    </>
+                    value(headerField)
                   ) : (
                     notes.header || (headerField ? value(headerField) : null)
                   )}
@@ -100,11 +100,11 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
 
         {plan.materials ? (
           <section className="bi-block">
-            <h3 className="bi-section">{blankLabel(plan.materials)}</h3>
-            <div className="bi-materials">
-              {value(plan.materials)}
+            <h3 className="bi-section">
+              {blankLabel(plan.materials)}
               <SourcePath field={plan.materials} projectId={project.id} />
-            </div>
+            </h3>
+            <div className="bi-materials">{value(plan.materials)}</div>
           </section>
         ) : null}
       </div>
@@ -125,10 +125,12 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
                 field.type === 'file'
               return (
                 <div className={`project-view-row${wide ? ' project-view-wide' : ''}`} key={field.code}>
-                  <dt>{field.name}</dt>
+                  <dt>
+                    {field.name}
+                    <SourcePath field={field} projectId={project.id} />
+                  </dt>
                   <dd>
                     <ProjectFieldValue field={field} project={project} parentValue={parent} />
-                    <SourcePath field={field} projectId={project.id} />
                   </dd>
                 </div>
               )
@@ -164,11 +166,11 @@ function WorkView({
         <tbody>
           {lines.map((field) => (
             <tr key={field.code}>
-              <th>{blankLabel(field)}</th>
-              <td className="bi-fill">
-                {value(field)}
+              <th>
+                {blankLabel(field)}
                 <SourcePath field={field} projectId={projectId} />
-              </td>
+              </th>
+              <td className="bi-fill">{value(field)}</td>
             </tr>
           ))}
           {pick ? (
@@ -201,22 +203,19 @@ function ViewSection({
             <tr key={row.map((field) => field.code).join('+')}>
               <th>
                 {row.map((field) => (
-                  <div key={field.code}>{blankLabel(field)}</div>
+                  <div key={field.code}>
+                    {blankLabel(field)}
+                    <SourcePath field={field} projectId={projectId} />
+                  </div>
                 ))}
               </th>
               <td className="bi-fill">
                 {row.length === 1 ? (
-                  <>
-                    {value(row[0])}
-                    <SourcePath field={row[0]} projectId={projectId} />
-                  </>
+                  value(row[0])
                 ) : (
                   <div className="bi-pair">
                     {row.map((field) => (
-                      <div key={field.code}>
-                        {value(field)}
-                        <SourcePath field={field} projectId={projectId} />
-                      </div>
+                      <div key={field.code}>{value(field)}</div>
                     ))}
                   </div>
                 )}
