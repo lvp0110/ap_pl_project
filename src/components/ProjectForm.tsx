@@ -48,6 +48,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
     setError,
     clearErrors,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm<ProjectFormValues>({ defaultValues: {} })
 
@@ -219,6 +220,7 @@ export function ProjectForm({ project, onSaved, onCancel }: Props) {
           removedFiles={removedFiles}
           onRemovedFilesChange={setRemovedFiles}
           notesKey={project?.id ?? 'new'}
+          onRegionChange={(regionId) => setValue('region_id', regionId, { shouldDirty: true })}
         />
 
         <div className="project-form-actions">

@@ -87,8 +87,9 @@ export async function listReferences(type: CrmReferenceType): Promise<CrmReferen
   return asList(data).filter((row): row is CrmReferenceValue => Boolean(row) && typeof row === 'object')
 }
 
-export async function listSgManagers(): Promise<CrmSgManager[]> {
-  const data = await apiRequest<unknown>('/crm/sg-managers')
+export async function listSgManagers(regionId?: number): Promise<CrmSgManager[]> {
+  const query = regionId ? `?region_id=${regionId}` : ''
+  const data = await apiRequest<unknown>(`/crm/sg-managers${query}`)
   return asList(data).filter((row): row is CrmSgManager => Boolean(row) && typeof row === 'object')
 }
 

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { useState } from 'react'
 import type { Control, FieldErrors } from 'react-hook-form'
 import { PARTNER_COMPANY } from '../data/defaults'
-import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
+import { blankLabel, planBlankFields, visibleExtraFields } from '../lib/projects/blankLayout'
 import type { CrmFormField, CrmProjectFile, CrmProjectMaterial } from '../lib/api/projectTypes'
 import type { ProjectFormValues } from '../lib/projects/formValues'
 import { loadSheetNotes, saveSheetNotes } from '../lib/projects/sheetNotes'
@@ -22,6 +22,7 @@ type Props = {
   removedFiles: number[]
   onRemovedFilesChange: (ids: number[]) => void
   notesKey: number | string
+  onRegionChange?: (regionId: string) => void
 }
 
 export function ProjectBlankSheet({
@@ -37,6 +38,7 @@ export function ProjectBlankSheet({
   removedFiles,
   onRemovedFilesChange,
   notesKey,
+  onRegionChange,
 }: Props) {
   const plan = planBlankFields(fields)
   const [liveRevenue, setLiveRevenue] = useState(() =>
@@ -71,11 +73,12 @@ export function ProjectBlankSheet({
         embed
         onMaterialsTotal={field.type === 'materials' ? setLiveRevenue : undefined}
         notesKey={field.type === 'materials' ? notesKey : undefined}
+        onRegionChange={field.code === 'sg_manager_id' ? onRegionChange : undefined}
       />
     )
   }
 
-  const extraFields = plan.extra.flat()
+  const extraFields = visibleExtraFields(plan.extra.flat())
 
   return (
     <>
