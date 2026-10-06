@@ -1385,7 +1385,7 @@ legend {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr 1fr 2fr auto;
   gap: 6px;
-  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .materials-create input {
@@ -1887,6 +1887,10 @@ legend {
 .bi-fill .dropdown-trigger.bi-empty,
 .bi-control .dropdown-trigger.bi-empty {
   color: #757575;
+}
+
+.bi-fill .dropdown-trigger.bi-empty.bi-add-contact {
+  color: #000;
 }
 
 .bi-fill .dropdown-trigger,

@@ -216,6 +216,7 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
         <p className="hint">Выберите бренд, чтобы увидеть его материалы.</p>
       ) : (
         <>
+          {!priceHidden && <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />}
           <div className="table-wrap">
             <table className={priceHidden ? 'grid price-hidden' : 'grid'}>
             <colgroup>
@@ -273,7 +274,6 @@ export function MaterialsPanel({ loadedFromApi }: { loadedFromApi: boolean }) {
             )}
           </table>
           </div>
-          {!priceHidden && <MaterialCreateForm brand={brand} busy={busy} onCreate={add} />}
         </>
       )}
     </section>
