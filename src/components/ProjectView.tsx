@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { PARTNER_COMPANY } from '../data/defaults'
 import type { CrmFormField, CrmProject, CrmProjectAccess } from '../lib/api/projectTypes'
-import { blankLabel, planBlankFields } from '../lib/projects/blankLayout'
+import { blankLabel, planBlankFields, visibleExtraFields } from '../lib/projects/blankLayout'
 import { readValue } from '../lib/projects/formValues'
 import { loadSheetNotes } from '../lib/projects/sheetNotes'
 import { formatDate, isBlankComplete, isSubmittedProject } from '../lib/projects/view'
@@ -19,6 +19,7 @@ type Props = {
 
 export function ProjectView({ project, fields, access, onBack, onEdit }: Props) {
   const plan = planBlankFields(fields)
+  const extraFields = visibleExtraFields(plan.extra.flat())
   const notes = loadSheetNotes(project.id)
   const headerField = plan.note[0]
 
@@ -95,12 +96,12 @@ export function ProjectView({ project, fields, access, onBack, onEdit }: Props) 
         ) : null}
       </div>
 
-      {plan.extra.length > 0 && (
+      {extraFields.length > 0 && (
         <section className="panel extra-crm">
           <h2>Дополнительные поля</h2>
           <p className="hint">Эти поля приходят из CRM и не входят в бланк информирования.</p>
           <dl className="project-view">
-            {plan.extra.flat().map((field) => {
+            {extraFields.map((field) => {
               const parent = field.depends_on
                 ? String(readValue(project, { ...field, code: field.depends_on }) || '')
                 : ''

@@ -6,6 +6,7 @@ import { formatMoney } from '../lib/projects/view'
 import { Dropdown } from './Dropdown'
 import { ProjectListField } from './ProjectListField'
 import { ProjectMaterialsField } from './ProjectMaterialsField'
+import { SgManagerPicker } from './SgManagerPicker'
 
 const QUARTERS = ['1', '2', '3', '4']
 
@@ -25,6 +26,7 @@ type Props = {
   displayValue?: number
   onMaterialsTotal?: (value: number) => void
   notesKey?: number | string
+  onRegionChange?: (regionId: string) => void
 }
 
 export function ProjectFormField({
@@ -43,6 +45,7 @@ export function ProjectFormField({
   displayValue,
   onMaterialsTotal,
   notesKey,
+  onRegionChange,
 }: Props) {
   if (field.code === 'documentation_type_ids') {
     return (
@@ -61,6 +64,47 @@ export function ProjectFormField({
             onChange={controlled.onChange}
           />
         )}
+      />
+    )
+  }
+
+  if (field.code === 'sg_manager_id') {
+    return (
+      <Controller
+        control={control}
+        name={field.code}
+        rules={{ required: field.required ? `${field.name}: заполните поле` : false }}
+        render={({ field: controlled }) => {
+          const picker = (
+            <SgManagerPicker
+              value={typeof controlled.value === 'string' ? controlled.value : ''}
+              regionId={parentValue}
+              disabled={busy}
+              onChange={(managerId, nextRegionId) => {
+                controlled.onChange(managerId)
+                onRegionChange?.(nextRegionId)
+              }}
+            />
+          )
+          if (embed) {
+            return (
+              <div className={`bi-control${error ? ' field-invalid' : ''}`}>
+                {picker}
+                {error && <span className="field-hint">{error}</span>}
+              </div>
+            )
+          }
+          return (
+            <label className={`field${error ? ' field-invalid' : ''}`}>
+              <span className="field-label">
+                {field.name}
+                {field.required && ' *'}
+              </span>
+              {picker}
+              {error && <span className="field-hint">{error}</span>}
+            </label>
+          )
+        }}
       />
     )
   }

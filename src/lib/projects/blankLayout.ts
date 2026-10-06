@@ -78,6 +78,11 @@ export function blankLabel(field: CrmFormField): string {
   return field.name.trim() || WORD_LABELS[field.code] || field.code
 }
 
+/** Регион выбирается вместе с сотрудником SG и в блок доп. полей не выводится. */
+export function visibleExtraFields(fields: CrmFormField[]): CrmFormField[] {
+  return fields.filter((field) => field.code !== 'region_id')
+}
+
 export type BlankPlan = {
   date: CrmFormField[]
   note: CrmFormField[]
