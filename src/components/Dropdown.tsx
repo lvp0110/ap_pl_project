@@ -13,6 +13,7 @@ type Props = {
   placeholder?: string
   disabled?: boolean
   label?: string
+  className?: string
   onBlur?: () => void
 }
 
@@ -23,6 +24,7 @@ export function Dropdown({
   placeholder = '',
   disabled = false,
   label,
+  className,
   onBlur,
 }: Props) {
   const items = useMemo(() => {
@@ -45,7 +47,7 @@ export function Dropdown({
       }}
     >
       <Select.Trigger
-        className={`dropdown-trigger${value ? '' : ' bi-empty'}`}
+        className={`dropdown-trigger${value ? '' : ' bi-empty'}${className ? ` ${className}` : ''}`}
         aria-label={label}
         disabled={disabled}
       >

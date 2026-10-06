@@ -210,7 +210,8 @@ function ContactRoleSelect({ onPick }: { onPick: (type: string) => void }) {
     <Dropdown
       value=""
       label="Тип контактного лица"
-      placeholder="Контактные лица"
+      placeholder="Добавить контакт"
+      className="bi-add-contact"
       options={CONTACT_ROWS.map((row) => ({ value: row.key, label: row.label }))}
       onChange={(type) => {
         if (type) onPick(type)
